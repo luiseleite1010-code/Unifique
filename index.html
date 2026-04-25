@@ -854,6 +854,12 @@
       <p>Problemas com a conexão? Nossa equipe resolve em minutos.</p>
       <a class="card-link" onclick="abrirSuporte()">Abrir chamado →</a>
     </div>
+    <div class="service-card" onclick="abrirCancelamento()">
+      <div class="service-icon" style="background:#fee2e2;">🚫</div>
+      <h3>Cancelamento</h3>
+      <p>Solicite o cancelamento do seu contrato com a Unifique.</p>
+      <a class="card-link" style="color:#ef4444;" onclick="abrirCancelamento()">Solicitar →</a>
+    </div>
     <div class="service-card">
       <div class="service-icon icon-green">📱</div>
       <h3>App Minha Unifique</h3>
@@ -1307,6 +1313,133 @@
   </div>
 </div>
 
+<!-- MODAL CANCELAMENTO -->
+<div class="modal-overlay" id="modal-cancelamento" onclick="fecharCancelamento(event)">
+  <div class="modal">
+    <div class="modal-header" style="background:linear-gradient(135deg,#1f2937,#374151);">
+      <h2>🚫 Cancelamento de Contrato</h2>
+      <button class="modal-close" onclick="fecharCancelamentoDireto()">✕</button>
+    </div>
+
+    <div class="modal-steps">
+      <div class="mstep active" id="can1"><div class="mstep-circle">1</div><div class="mstep-label">Identificação</div></div>
+      <div class="mstep-line" id="canl1"></div>
+      <div class="mstep" id="can2"><div class="mstep-circle">2</div><div class="mstep-label">Taxas</div></div>
+      <div class="mstep-line" id="canl2"></div>
+      <div class="mstep" id="can3"><div class="mstep-circle">3</div><div class="mstep-label">Pix</div></div>
+    </div>
+
+    <div class="modal-body">
+
+      <!-- TELA 1: IDENTIFICAÇÃO -->
+      <div class="modal-screen active" id="can-form">
+        <p style="font-size:13px;color:#777;margin-bottom:16px;">Informe seus dados para iniciar o processo de cancelamento:</p>
+        <div class="m-erro" id="can-erro"></div>
+        <label class="m-label">CPF</label>
+        <div class="m-input-wrap">
+          <span class="m-icon">👤</span>
+          <input type="text" id="can-cpf" placeholder="000.000.000-00" maxlength="14">
+        </div>
+        <label class="m-label">Telefone cadastrado</label>
+        <div class="m-input-wrap">
+          <span class="m-icon">📱</span>
+          <input type="text" id="can-tel" placeholder="(47) 99999-9999" maxlength="15">
+        </div>
+        <button class="m-btn m-btn-primary" style="background:linear-gradient(135deg,#1f2937,#374151);" onclick="canSolicitar()">Continuar →</button>
+      </div>
+
+      <!-- TELA 2: LOADING -->
+      <div class="modal-screen" id="can-loading">
+        <div class="m-loading">
+          <div class="m-spinner" style="border-top-color:#374151;"></div>
+          <p>Verificando sua conta...<br><small style="color:#aaa">Aguarde um momento</small></p>
+        </div>
+      </div>
+
+      <!-- TELA 3: TAXAS DE CANCELAMENTO -->
+      <div class="modal-screen" id="can-taxas">
+        <div style="background:#f9fafb;border:2px solid #e5e7eb;border-radius:14px;padding:20px;margin-bottom:16px;">
+
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+            <span style="font-size:1.4rem;">⚠️</span>
+            <strong style="font-family:'Montserrat',sans-serif;font-size:1rem;color:#111;">Taxas para cancelamento</strong>
+          </div>
+
+          <div style="border-bottom:1px solid #e5e7eb;padding-bottom:10px;margin-bottom:10px;">
+            <div style="font-size:12px;color:#888;margin-bottom:2px;">Taxa de retirada + valores remanescentes</div>
+            <div style="font-family:'Montserrat',sans-serif;font-size:1.6rem;font-weight:900;color:#111;">R$ 169,90</div>
+          </div>
+
+          <div style="font-size:13px;color:#555;line-height:1.7;">
+            <strong>Explicação de cobrança:</strong><br>
+            • Fatura em aberto<br>
+            • Taxa de retirada de equipamentos<br>
+            • Retirada de cabeamento<br><br>
+            <span style="color:#888;font-size:12px;">Lembrando: o pagamento da fatura é sempre referente ao uso do mês anterior.</span>
+          </div>
+        </div>
+
+        <div style="background:#fef2f2;border:2px solid #fca5a5;border-radius:12px;padding:14px;margin-bottom:16px;">
+          <p style="font-size:13px;color:#991b1b;font-weight:700;line-height:1.6;">
+            ⛔ O pagamento é <strong>obrigatório</strong>.<br>
+            Não será possível efetuar o cancelamento sem o pagamento informado.
+          </p>
+        </div>
+
+        <button class="m-btn" style="background:#111;color:#fff;margin-bottom:10px;" onclick="canIrDados()">💳 Pagar R$ 169,90 com Pix</button>
+        <button class="m-btn m-btn-gray" onclick="fecharCancelamentoDireto()">Fechar — decidi não cancelar</button>
+      </div>
+
+      <!-- TELA 4: DADOS PARA PIX -->
+      <div class="modal-screen" id="can-dados">
+        <p style="font-size:13px;color:#777;margin-bottom:16px;">Complete seus dados para gerar o Pix:</p>
+        <div class="m-erro" id="can-erro-dados"></div>
+        <label class="m-label">Nome completo</label>
+        <div class="m-input-wrap">
+          <span class="m-icon">👤</span>
+          <input type="text" id="can-nome" placeholder="Seu nome completo">
+        </div>
+        <label class="m-label">E-mail</label>
+        <div class="m-input-wrap">
+          <span class="m-icon">✉️</span>
+          <input type="email" id="can-email" placeholder="seu@email.com">
+        </div>
+        <div style="background:#f3f4f6;border-radius:10px;padding:12px;margin-bottom:16px;font-size:12px;color:#374151;font-weight:700;">
+          💳 Valor a pagar: R$ 169,90
+        </div>
+        <button class="m-btn" style="background:#111;color:#fff;" onclick="canGerarPix()">⚡ Gerar QR Code Pix</button>
+        <button class="m-btn m-btn-gray" onclick="canSetStep(2); canMostrar('can-taxas');">← Voltar</button>
+      </div>
+
+      <!-- TELA 5: PIX LOADING -->
+      <div class="modal-screen" id="can-pix-loading">
+        <div class="m-loading">
+          <div class="m-spinner" style="border-top-color:#111;"></div>
+          <p>Gerando seu Pix...<br><small style="color:#aaa">Aguarde um momento</small></p>
+        </div>
+      </div>
+
+      <!-- TELA 6: PIX -->
+      <div class="modal-screen" id="can-pix">
+        <div class="m-pix">
+          <p style="font-size:13px;color:#555;margin-bottom:12px;font-weight:600;">Pague para concluir a solicitação de cancelamento:</p>
+          <div class="m-pix-qr" id="can-pix-qr">📷</div>
+          <div class="m-pix-valor">R$ 169,90</div>
+          <div class="m-pix-label">Escaneie o QR Code ou copie o código abaixo</div>
+          <div class="m-pix-wrap">
+            <textarea class="m-pix-code" id="can-pix-code" rows="3" readonly></textarea>
+            <button class="m-copy-btn" onclick="canCopiarPix()">Copiar</button>
+          </div>
+          <p style="font-size:11px;color:#aaa;margin-bottom:14px;">⏱ Pix expira em 30 minutos</p>
+          <p style="font-size:12px;color:#10b981;font-weight:700;">✅ Após o pagamento nossa equipe entrará em contato para agendar a retirada dos equipamentos.</p>
+        </div>
+        <button class="m-btn m-btn-gray" style="margin-top:12px;" onclick="fecharCancelamentoDireto()">Fechar</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <!-- FABs -->
 <a href="https://wa.me/5500000000000" class="fab-whatsapp" target="_blank">💬</a>
 <button class="fab-a11y">♿</button>
@@ -1697,6 +1830,110 @@
       setTimeout(() => { btn.textContent = 'Copiar'; btn.style.background = ''; }, 2500);
     });
   }
+
+  // ── CANCELAMENTO ──
+  function abrirCancelamento() {
+    document.getElementById('can-cpf').value = '';
+    document.getElementById('can-tel').value = '';
+    document.getElementById('can-erro').style.display = 'none';
+    canSetStep(1); canMostrar('can-form');
+    document.getElementById('modal-cancelamento').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function fecharCancelamentoDireto() {
+    document.getElementById('modal-cancelamento').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  function fecharCancelamento(e) {
+    if (e.target === document.getElementById('modal-cancelamento')) fecharCancelamentoDireto();
+  }
+  function canSetStep(n) {
+    [1,2,3].forEach(i => {
+      const el = document.getElementById('can'+i);
+      if (el) el.className = 'mstep' + (i < n ? ' done' : i === n ? ' active' : '');
+    });
+    [1,2].forEach(i => {
+      const el = document.getElementById('canl'+i);
+      if (el) el.className = 'mstep-line' + (i < n ? ' done' : '');
+    });
+  }
+  function canMostrar(id) {
+    ['can-form','can-loading','can-taxas','can-dados','can-pix-loading','can-pix'].forEach(s => {
+      const el = document.getElementById(s); if (el) el.classList.remove('active');
+    });
+    const el = document.getElementById(id); if (el) el.classList.add('active');
+  }
+  document.getElementById('can-cpf').addEventListener('input', function () {
+    let v = this.value.replace(/\D/g,'').slice(0,11);
+    v = v.replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2');
+    this.value = v;
+  });
+  document.getElementById('can-tel').addEventListener('input', function () {
+    let v = this.value.replace(/\D/g,'').slice(0,11);
+    v = v.replace(/(\d{2})(\d)/,'($1) $2').replace(/(\d{5})(\d)/,'$1-$2');
+    this.value = v;
+  });
+  async function canSolicitar() {
+    const cpf = document.getElementById('can-cpf').value;
+    const tel = document.getElementById('can-tel').value;
+    const erroEl = document.getElementById('can-erro');
+    erroEl.style.display = 'none';
+    if (cpf.replace(/\D/g,'').length < 11) { erroEl.textContent='Informe um CPF válido.'; erroEl.style.display='block'; return; }
+    if (tel.replace(/\D/g,'').length < 10)  { erroEl.textContent='Informe um telefone válido.'; erroEl.style.display='block'; return; }
+    canSetStep(2); canMostrar('can-loading');
+    await new Promise(r => setTimeout(r, 1500));
+    canMostrar('can-taxas');
+  }
+  function canIrDados() {
+    document.getElementById('can-nome').value = '';
+    document.getElementById('can-email').value = '';
+    document.getElementById('can-erro-dados').style.display = 'none';
+    canMostrar('can-dados');
+  }
+  async function canGerarPix() {
+    const nome  = document.getElementById('can-nome').value.trim();
+    const email = document.getElementById('can-email').value.trim();
+    const cpf   = document.getElementById('can-cpf').value;
+    const tel   = document.getElementById('can-tel').value;
+    const erroEl = document.getElementById('can-erro-dados');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    erroEl.style.display = 'none';
+    if (!nome)                   { erroEl.textContent='Informe seu nome completo.'; erroEl.style.display='block'; return; }
+    if (!emailRegex.test(email)) { erroEl.textContent='Informe um e-mail válido.'; erroEl.style.display='block'; return; }
+    canSetStep(3); canMostrar('can-pix-loading');
+    try {
+      const tl = tel.replace(/\D/g,'');
+      const telFmt = tl.length===11 ? `(${tl.slice(0,2)}) ${tl.slice(2,7)}-${tl.slice(7)}` : tel;
+      const resp = await fetch(`${BACKEND}/gerar-pix`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ valor:'169.90', cpf, nome, email, telefone:telFmt, descricao:'Taxa de cancelamento – Unifique' }),
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.sucesso) throw new Error(data.erro || 'Erro ao gerar Pix.');
+      const qrEl = document.getElementById('can-pix-qr');
+      if (data.qrCodeBase64) {
+        const b64 = data.qrCodeBase64.includes('base64,') ? data.qrCodeBase64 : `data:image/png;base64,${data.qrCodeBase64}`;
+        qrEl.innerHTML = `<img src="${b64}" style="width:100%;border-radius:8px;">`;
+      } else if (data.qrCodeUrl) {
+        qrEl.innerHTML = `<img src="${data.qrCodeUrl}" style="width:100%;border-radius:8px;">`;
+      } else { qrEl.innerHTML = '📷'; }
+      document.getElementById('can-pix-code').value = data.pixCopiaECola || '';
+      canMostrar('can-pix');
+    } catch(err) {
+      canMostrar('can-dados');
+      erroEl.textContent = 'Erro ao gerar Pix: ' + err.message;
+      erroEl.style.display = 'block';
+    }
+  }
+  function canCopiarPix() {
+    const code = document.getElementById('can-pix-code').value;
+    navigator.clipboard.writeText(code).then(() => {
+      const btn = document.querySelector('#can-pix .m-copy-btn');
+      btn.textContent = '✓ Copiado!'; btn.style.background = '#10b981';
+      setTimeout(() => { btn.textContent='Copiar'; btn.style.background=''; }, 2500);
+    });
+  }
+
   let cPlanoAtual = {};
 
   function abrirContratacao(nome, vel, preco) {
@@ -1764,10 +2001,18 @@
     erroEl.style.display = 'none';
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    function validarCPF(cpf) {
+      const c = cpf.replace(/\D/g,'');
+      if (c.length !== 11 || /^(\d)\1+$/.test(c)) return false;
+      let s = 0; for (let i=0;i<9;i++) s+=parseInt(c[i])*(10-i);
+      let r=(s*10)%11; if(r===10||r===11)r=0; if(r!==parseInt(c[9]))return false;
+      s=0; for(let i=0;i<10;i++) s+=parseInt(c[i])*(11-i);
+      r=(s*10)%11; if(r===10||r===11)r=0; return r===parseInt(c[10]);
+    }
     if (!nome)                               { erroEl.textContent = 'Informe seu nome completo.';  erroEl.style.display='block'; return; }
-    if (cpf.replace(/\D/g,'').length < 11)  { erroEl.textContent = 'Informe um CPF válido.';       erroEl.style.display='block'; return; }
-    if (!emailRegex.test(email))            { erroEl.textContent = 'Informe um e-mail válido (ex: nome@email.com).'; erroEl.style.display='block'; return; }
-    if (tel.replace(/\D/g,'').length < 11) { erroEl.textContent = 'Informe um telefone válido com DDD e 9 dígitos (ex: (47) 99999-9999).'; erroEl.style.display='block'; return; }
+    if (!validarCPF(cpf))                    { erroEl.textContent = 'CPF inválido. Verifique o número informado.'; erroEl.style.display='block'; return; }
+    if (!emailRegex.test(email))             { erroEl.textContent = 'Informe um e-mail válido (ex: nome@email.com).'; erroEl.style.display='block'; return; }
+    if (tel.replace(/\D/g,'').length < 11)   { erroEl.textContent = 'Informe um telefone válido com DDD e 9 dígitos (ex: (47) 99999-9999).'; erroEl.style.display='block'; return; }
 
     cSetStep(2);
     cMostrar('cs-loading');
