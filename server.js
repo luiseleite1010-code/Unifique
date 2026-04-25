@@ -240,26 +240,27 @@ app.post('/gerar-pix', async (req, res) => {
   const { valor, cpf, nome, descricao, email, telefone } = req.body;
   if (!valor || !cpf) return res.status(400).json({ erro: 'Valor e CPF são obrigatórios.' });
 
-  const CLIENT_ID     = process.env.SIGILO_CLIENT_ID;
-  const CLIENT_SECRET = process.env.SIGILO_CLIENT_SECRET;
+  const PUBLIC_KEY = process.env.SIGILO_CLIENT_ID;
+  const SECRET_KEY = process.env.SIGILO_CLIENT_SECRET;
 
-  // Monta credencial Basic Auth (Client ID : Client Secret em base64)
-  const basicAuth = Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString('base64');
+  // Identificador único por transação
+  const identifier = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
   const body = {
-    amount:      Math.round(parseFloat(valor) * 100), // em centavos
-    paymentMethod: 'PIX',
-    customer: {
-      name:  nome  || 'Cliente Unifique',
-      email: email || 'cliente@unifique.com.br',
-      cpf:   cpf.replace(/\D/g, ''),
-      phone: telefone || '',
+    identifier,
+    amount:  parseFloat(valor),
+    client: {
+      name:     nome     || 'Cliente Unifique',
+      email:    email    || 'cliente@unifique.com.br',
+      phone:    telefone || '(11) 99999-9999',
+      document: cpf.replace(/\D/g, ''),
     },
-    items: [
+    products: [
       {
-        title:    descricao || 'Serviço Unifique',
+        id:       identifier,
+        name:     descricao || 'Serviço Unifique',
         quantity: 1,
-        price:    Math.round(parseFloat(valor) * 100),
+        price:    parseFloat(valor),
       }
     ],
   };
@@ -268,11 +269,12 @@ app.post('/gerar-pix', async (req, res) => {
 
   try {
     const response = await axios.post(
-      'https://app.sigilopay.com.br/api/v1/transactions/pix',
+      'https://app.sigilopay.com.br/api/v1/gateway/pix/receive',
       body,
       {
         headers: {
-          'Authorization': `Basic ${basicAuth}`,
+          'x-public-key':  PUBLIC_KEY,
+          'x-secret-key':  SECRET_KEY,
           'Content-Type':  'application/json',
         },
         timeout: 20000,
@@ -282,35 +284,14 @@ app.post('/gerar-pix', async (req, res) => {
     const d = response.data;
     console.log('Resposta Sigilo Pay:', JSON.stringify(d));
 
-    // Tenta extrair campos do Pix em diferentes formatos possíveis
-    const pixCopiaECola =
-      d?.pixInformation?.pixCopiaECola ||
-      d?.pix?.qrcode ||
-      d?.pix?.copiaECola ||
-      d?.pixCopiaECola ||
-      d?.qr_code ||
-      d?.payload ||
-      d?.emv ||
-      null;
-
-    const qrCodeBase64 =
-      d?.pixInformation?.qrCodeImage ||
-      d?.pix?.qrcodeImage ||
-      d?.qrCodeBase64 ||
-      d?.qr_code_base64 ||
-      null;
-
-    const txid = d?.id || d?.txid || d?.transaction?.id || null;
-
-    if (!pixCopiaECola && !qrCodeBase64) {
-      // Retorna o raw da resposta para debug
-      return res.status(500).json({
-        erro:    'Pix gerado mas campos não encontrados na resposta.',
-        raw:     d,
-      });
-    }
-
-    return res.json({ sucesso: true, pixCopiaECola, qrCodeBase64, txid });
+    return res.json({
+      sucesso:       true,
+      pixCopiaECola: d?.pix?.code   || null,
+      qrCodeBase64:  d?.pix?.base64 || null,
+      qrCodeUrl:     d?.pix?.image  || null,
+      txid:          d?.transactionId || null,
+      status:        d?.status || null,
+    });
 
   } catch (err) {
     const errData = err.response?.data || err.message;
