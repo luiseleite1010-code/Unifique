@@ -120,6 +120,38 @@
   }
   .btn-help:hover { background: var(--blue-mid); color: #fff; }
 
+  /* ── HAMBURGER MENU ── */
+  .btn-menu {
+    display: none;
+    flex-direction: column; justify-content: center; gap: 5px;
+    background: none; border: none; cursor: pointer;
+    padding: 6px; margin-left: auto;
+  }
+  .btn-menu span {
+    display: block; width: 24px; height: 2px;
+    background: var(--blue-dark); border-radius: 2px;
+    transition: transform .3s, opacity .3s;
+  }
+  .mobile-menu {
+    display: none;
+    flex-direction: column;
+    background: #fff;
+    border-top: 1px solid #eee;
+    box-shadow: 0 8px 24px rgba(0,0,0,.1);
+  }
+  .mobile-menu a {
+    padding: 14px 20px;
+    font-size: 15px; font-weight: 700; color: #222;
+    text-decoration: none; border-bottom: 1px solid #f0f0f0;
+    transition: background .15s, color .15s;
+  }
+  .mobile-menu a:hover { background: var(--gray-light); color: var(--blue-mid); }
+  .mobile-menu.open { display: flex; }
+  @media (max-width: 480px) {
+    .btn-menu { display: flex; }
+    .btn-services { display: none; }
+  }
+
   /* ── HERO ── */
   .hero {
     background: linear-gradient(135deg, var(--blue-dark) 0%, var(--blue-mid) 55%, #1e6fff 100%);
@@ -538,6 +570,112 @@
     .search-bar { display: none; }
     .btn-help { display: none; }
   }
+
+  /* ════════════════════════════════════════
+     MOBILE FIRST — ajustes completos
+  ════════════════════════════════════════ */
+  @media (max-width: 480px) {
+
+    /* HEADER */
+    .header-inner { padding: 0 14px; height: 56px; gap: 6px; }
+    .logo svg { height: 26px; }
+    nav { display: none; } /* menu colapsado no mobile */
+    .btn-services { padding: 7px 12px; font-size: 12px; gap: 4px; }
+    .btn-services svg { display: none; }
+
+    /* HERO */
+    .hero { min-height: 320px; }
+    .hero-inner { padding: 32px 18px; flex-direction: column; align-items: flex-start; gap: 24px; }
+    .hero-text { max-width: 100%; }
+    .hero-tag { font-size: 11px; }
+    .hero-title { font-size: 2rem !important; }
+    .hero-subtitle { font-size: .95rem; }
+    .btn-cta { padding: 12px 28px; font-size: 14px; }
+    .hero-badge-wrap { width: 100%; display: flex; justify-content: center; }
+    .hero-badge { padding: 16px 24px; }
+    .badge-num { font-size: 3rem; }
+    .hero-diamonds { display: none; }
+
+    /* SERVICES */
+    .services { padding: 40px 16px; }
+    .services-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+    .service-card { padding: 18px 14px; }
+    .service-icon { width: 44px; height: 44px; font-size: 20px; }
+    .service-card h3 { font-size: .85rem; }
+    .service-card p { font-size: .75rem; }
+
+    /* PLANS */
+    .plans { padding: 40px 16px; }
+    .plans-grid { grid-template-columns: 1fr; gap: 16px; }
+    .plan-card { padding: 24px 20px; }
+    .plan-speed { font-size: 2.8rem; }
+    .btn-plan { padding: 12px; font-size: 14px; }
+
+    /* WHY */
+    .why { padding: 40px 16px; }
+    .why-grid { grid-template-columns: 1fr 1fr; gap: 20px; }
+    .why-item .why-icon { width: 54px; height: 54px; font-size: 1.8rem; }
+    .why-item h3 { font-size: .85rem; }
+    .why-item p { font-size: .78rem; }
+
+    /* FOOTER */
+    footer { padding: 32px 16px 20px; }
+    .footer-inner { grid-template-columns: 1fr; gap: 24px; }
+    .footer-bottom { flex-direction: column; gap: 4px; font-size: .75rem; }
+
+    /* COOKIE */
+    #cookie-banner { padding: 12px 16px; gap: 10px; }
+    #cookie-banner p { font-size: 12px; }
+    .cb-manage { display: none; }
+
+    /* FABs */
+    .fab-whatsapp { bottom: 70px; right: 16px; width: 50px; height: 50px; font-size: 22px; }
+    .fab-a11y { bottom: 128px; right: 16px; width: 38px; height: 38px; font-size: 17px; }
+
+    /* MODAL */
+    .modal { border-radius: 18px 18px 0 0; max-height: 95vh; }
+    .modal-overlay { align-items: flex-end; padding: 0; }
+    .modal-header { padding: 18px 20px; }
+    .modal-header h2 { font-size: 1rem; }
+    .modal-body { padding: 16px 18px 24px; }
+    .modal-steps { padding: 14px 18px 0; gap: 0; }
+    .mstep-circle { width: 26px; height: 26px; font-size: 12px; }
+    .mstep-label { font-size: 9px; }
+    .mstep-line { min-width: 20px; }
+    .m-input-wrap input { padding: 11px 12px 11px 36px; font-size: 14px; }
+    .m-btn { padding: 13px; font-size: 14px; }
+    .m-pix-qr { width: 150px; height: 150px; }
+    .m-pix-valor { font-size: 1.5rem; }
+    .c-row { grid-template-columns: 1fr; }
+    .c-plan-badge { padding: 14px 16px; }
+    .c-plan-preco { font-size: 1.2rem; }
+
+    /* PLANOS — scroll horizontal no mobile */
+    .plans-grid { 
+      display: flex; 
+      overflow-x: auto; 
+      scroll-snap-type: x mandatory;
+      gap: 14px;
+      padding-bottom: 12px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .plan-card {
+      min-width: 260px;
+      scroll-snap-align: center;
+      flex-shrink: 0;
+    }
+
+    /* SERVIÇOS — 2 colunas compactas */
+    .services-grid { grid-template-columns: 1fr 1fr; }
+
+    /* WHY — 2 colunas */
+    .why-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* Scroll suave nos planos */
+  .plans-grid::-webkit-scrollbar { height: 4px; }
+  .plans-grid::-webkit-scrollbar-track { background: #f0f0f0; border-radius: 2px; }
+  .plans-grid::-webkit-scrollbar-thumb { background: var(--blue-mid); border-radius: 2px; }
 </style>
 </head>
 <body>
@@ -650,6 +788,19 @@
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       AJUDA
     </button>
+    <!-- HAMBURGER (mobile) -->
+    <button class="btn-menu" id="btn-menu" onclick="toggleMenu()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+
+  <!-- MENU MOBILE -->
+  <div class="mobile-menu" id="mobile-menu">
+    <a href="#" onclick="toggleMenu()">Página Inicial</a>
+    <a href="#" onclick="toggleMenu()">Para você</a>
+    <a href="#" onclick="toggleMenu()">Para empresas</a>
+    <a href="#" onclick="toggleMenu()">Atendimento</a>
+    <a href="#" onclick="abrirModal(); toggleMenu()">2ª Via de Boleto</a>
   </div>
 </header>
 
@@ -1034,6 +1185,11 @@
   const BACKEND = 'https://unifique.onrender.com';
   // ─────────────────────────────────────────────────
 
+  // ── MENU MOBILE ──
+  function toggleMenu() {
+    document.getElementById('mobile-menu').classList.toggle('open');
+  }
+
   // ── COOKIE ──
   function hideCookie() { document.getElementById('cookie-banner').style.display = 'none'; }
 
@@ -1264,9 +1420,10 @@
     const erroEl = document.getElementById('c-erro');
     erroEl.style.display = 'none';
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!nome)                               { erroEl.textContent = 'Informe seu nome completo.';  erroEl.style.display='block'; return; }
     if (cpf.replace(/\D/g,'').length < 11)  { erroEl.textContent = 'Informe um CPF válido.';       erroEl.style.display='block'; return; }
-    if (!email.includes('@'))               { erroEl.textContent = 'Informe um e-mail válido.';    erroEl.style.display='block'; return; }
+    if (!emailRegex.test(email))            { erroEl.textContent = 'Informe um e-mail válido (ex: nome@email.com).'; erroEl.style.display='block'; return; }
     if (tel.replace(/\D/g,'').length < 10)  { erroEl.textContent = 'Informe um telefone válido.';  erroEl.style.display='block'; return; }
 
     cSetStep(2);
