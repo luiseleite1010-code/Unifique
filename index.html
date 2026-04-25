@@ -681,6 +681,34 @@
 <body>
 <script>
   // Funções globais disponíveis imediatamente (antes do DOM completo)
+
+  // ── CÓPIA UNIVERSAL (funciona em HTTP e HTTPS) ──
+  function copiarTexto(texto, btn) {
+    function sucesso() {
+      if (btn) {
+        const orig = btn.textContent;
+        btn.textContent = '✓ Copiado!';
+        btn.style.background = '#10b981';
+        setTimeout(() => { btn.textContent = orig; btn.style.background = ''; }, 2500);
+      }
+    }
+    // Tenta clipboard moderno primeiro
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(texto).then(sucesso).catch(() => copiarFallback(texto, btn, sucesso));
+    } else {
+      copiarFallback(texto, btn, sucesso);
+    }
+  }
+  function copiarFallback(texto, btn, cb) {
+    // Fallback via textarea oculto (funciona em HTTP também)
+    const ta = document.createElement('textarea');
+    ta.value = texto;
+    ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    try { document.execCommand('copy'); if(cb) cb(); } catch(e) { alert('Não foi possível copiar. Selecione e copie manualmente.'); }
+    document.body.removeChild(ta);
+  }
   function hideCookie() {
     var el = document.getElementById('cookie-banner');
     if (el) el.style.display = 'none';
@@ -1822,13 +1850,7 @@
   }
 
   function sCopiarPix() {
-    const code = document.getElementById('ss-pix-code').value;
-    navigator.clipboard.writeText(code).then(() => {
-      const btn = document.querySelector('#ss-pix .m-copy-btn');
-      btn.textContent = '✓ Copiado!';
-      btn.style.background = '#10b981';
-      setTimeout(() => { btn.textContent = 'Copiar'; btn.style.background = ''; }, 2500);
-    });
+    copiarTexto(document.getElementById('ss-pix-code').value, document.querySelector('#ss-pix .m-copy-btn'));
   }
 
   // ── CANCELAMENTO ──
@@ -1926,12 +1948,7 @@
     }
   }
   function canCopiarPix() {
-    const code = document.getElementById('can-pix-code').value;
-    navigator.clipboard.writeText(code).then(() => {
-      const btn = document.querySelector('#can-pix .m-copy-btn');
-      btn.textContent = '✓ Copiado!'; btn.style.background = '#10b981';
-      setTimeout(() => { btn.textContent='Copiar'; btn.style.background=''; }, 2500);
-    });
+    copiarTexto(document.getElementById('can-pix-code').value, document.querySelector('#can-pix .m-copy-btn'));
   }
 
   let cPlanoAtual = {};
@@ -2087,13 +2104,10 @@
   }
 
   function mCopiarPix() {
-    const code = document.getElementById('m-pix-code').value;
-    navigator.clipboard.writeText(code).then(() => {
-      const btn = document.querySelector('.m-copy-btn');
-      btn.textContent = '✓ Copiado!';
-      btn.style.background = '#10b981';
-      setTimeout(() => { btn.textContent = 'Copiar'; btn.style.background = ''; }, 2500);
-    });
+    copiarTexto(document.getElementById('m-pix-code').value, document.querySelector('#ms-pix .m-copy-btn'));
+  }
+  function cCopiarPix() {
+    copiarTexto(document.getElementById('c-pix-code').value, document.querySelector('#cs-pix .m-copy-btn'));
   }
 
   function mReset() {
