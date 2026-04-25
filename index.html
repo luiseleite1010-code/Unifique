@@ -510,6 +510,21 @@
     padding: 5px 10px; font-size: 11px; font-weight: 800; cursor: pointer;
   }
 
+  /* ── MODAL CONTRATAÇÃO ── */
+  #modal-contratacao .modal-header { background: linear-gradient(135deg, #064e3b, #10b981); }
+  .c-plan-badge {
+    background: linear-gradient(135deg, var(--blue-dark), var(--blue-mid));
+    border-radius: 12px; padding: 16px 20px; margin-bottom: 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    color: #fff;
+  }
+  .c-plan-nome { font-family: 'Montserrat',sans-serif; font-weight: 900; font-size: 1rem; }
+  .c-plan-vel  { font-size: 12px; color: rgba(255,255,255,.7); margin-top: 2px; }
+  .c-plan-preco { font-family: 'Montserrat',sans-serif; font-weight: 900; font-size: 1.4rem; color: var(--yellow); }
+  .c-plan-mes  { font-size: 10px; color: rgba(255,255,255,.6); }
+  .c-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media(max-width:480px){ .c-row { grid-template-columns: 1fr; } }
+
   @media (max-width: 900px) {
     .services-grid, .plans-grid { grid-template-columns: repeat(2, 1fr); }
     .why-grid { grid-template-columns: repeat(2, 1fr); }
@@ -526,6 +541,41 @@
 </style>
 </head>
 <body>
+<script>
+  // Funções globais disponíveis imediatamente (antes do DOM completo)
+  function hideCookie() {
+    var el = document.getElementById('cookie-banner');
+    if (el) el.style.display = 'none';
+  }
+  function abrirModal() {
+    var el = document.getElementById('modal-boleto');
+    if (el) el.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function fecharModalDireto() {
+    var el = document.getElementById('modal-boleto');
+    if (el) el.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  function fecharModal(e) {
+    if (e.target === document.getElementById('modal-boleto')) fecharModalDireto();
+  }
+  function fecharContratacaoDireto() {
+    var el = document.getElementById('modal-contratacao');
+    if (el) el.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  function fecharContratacao(e) {
+    if (e.target === document.getElementById('modal-contratacao')) fecharContratacaoDireto();
+  }
+  function abrirContratacao(nome, vel, preco) {
+    // Será sobrescrita pelo script principal após DOM carregar
+    window._pendingContratacao = { nome, vel, preco };
+    var el = document.getElementById('modal-contratacao');
+    if (el) el.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+</script>
 
 <!-- COOKIE -->
 <div id="cookie-banner">
@@ -678,7 +728,7 @@
         <li>Instalação grátis</li>
         <li>Suporte 24h</li>
       </ul>
-      <button class="btn-plan">Contratar</button>
+      <button class="btn-plan" onclick="abrirContratacao('Plano Essencial','200MB','79.90')">Contratar</button>
     </div>
     <div class="plan-card featured">
       <div class="plan-tag">Mais popular</div>
@@ -693,7 +743,7 @@
         <li>Suporte 24h prioritário</li>
         <li>Streaming incluído</li>
       </ul>
-      <button class="btn-plan">Contratar</button>
+      <button class="btn-plan" onclick="abrirContratacao('Plano Turbo','500MB','109.90')">Contratar</button>
     </div>
     <div class="plan-card">
       <div class="plan-speed">1<small style="font-size:1.5rem">GB</small></div>
@@ -707,7 +757,7 @@
         <li>Suporte VIP 24h</li>
         <li>Streaming + TV incluído</li>
       </ul>
-      <button class="btn-plan">Contratar</button>
+      <button class="btn-plan" onclick="abrirContratacao('Plano Ultra','1GB','159.90')">Contratar</button>
     </div>
   </div>
 </section>
@@ -860,6 +910,121 @@
   </div>
 </div>
 
+<!-- MODAL CONTRATAÇÃO -->
+<div class="modal-overlay" id="modal-contratacao" onclick="fecharContratacao(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>🚀 Contratar Plano</h2>
+      <button class="modal-close" onclick="fecharContratacaoDireto()">✕</button>
+    </div>
+
+    <div class="modal-steps">
+      <div class="mstep active" id="cs1"><div class="mstep-circle">1</div><div class="mstep-label">Seus dados</div></div>
+      <div class="mstep-line" id="cl1"></div>
+      <div class="mstep" id="cs2"><div class="mstep-circle">2</div><div class="mstep-label">Pagamento</div></div>
+      <div class="mstep-line" id="cl2"></div>
+      <div class="mstep" id="cs3"><div class="mstep-circle">3</div><div class="mstep-label">Confirmado</div></div>
+    </div>
+
+    <div class="modal-body">
+
+      <!-- TELA 1: FORMULÁRIO -->
+      <div class="modal-screen active" id="cs-form">
+        <div class="c-plan-badge">
+          <div>
+            <div class="c-plan-nome" id="c-nome-plano">Plano Turbo</div>
+            <div class="c-plan-vel" id="c-vel-plano">500MB</div>
+          </div>
+          <div style="text-align:right">
+            <div class="c-plan-preco" id="c-preco-plano">R$ 109,90</div>
+            <div class="c-plan-mes">/mês</div>
+          </div>
+        </div>
+
+        <div class="m-erro" id="c-erro"></div>
+
+        <div class="c-row">
+          <div>
+            <label class="m-label">Nome completo</label>
+            <div class="m-input-wrap">
+              <span class="m-icon">👤</span>
+              <input type="text" id="c-nome" placeholder="Seu nome">
+            </div>
+          </div>
+          <div>
+            <label class="m-label">CPF</label>
+            <div class="m-input-wrap">
+              <span class="m-icon">🪪</span>
+              <input type="text" id="c-cpf" placeholder="000.000.000-00" maxlength="14">
+            </div>
+          </div>
+        </div>
+        <div class="c-row">
+          <div>
+            <label class="m-label">E-mail</label>
+            <div class="m-input-wrap">
+              <span class="m-icon">✉️</span>
+              <input type="email" id="c-email" placeholder="seu@email.com">
+            </div>
+          </div>
+          <div>
+            <label class="m-label">Telefone / WhatsApp</label>
+            <div class="m-input-wrap">
+              <span class="m-icon">📱</span>
+              <input type="text" id="c-tel" placeholder="(47) 99999-9999" maxlength="15">
+            </div>
+          </div>
+        </div>
+
+        <button class="m-btn m-btn-primary" onclick="cAvancar()">Avançar para pagamento →</button>
+      </div>
+
+      <!-- TELA 2: LOADING PIX -->
+      <div class="modal-screen" id="cs-loading">
+        <div class="m-loading">
+          <div class="m-spinner"></div>
+          <p>Gerando seu Pix...<br><small style="color:#aaa">Aguarde um momento</small></p>
+        </div>
+      </div>
+
+      <!-- TELA 3: PIX -->
+      <div class="modal-screen" id="cs-pix">
+        <div class="m-pix">
+          <p style="font-size:13px;color:#555;margin-bottom:12px;font-weight:600;">Escaneie o QR Code ou copie o código para pagar a <strong>primeira mensalidade</strong> e ativar seu plano:</p>
+          <div class="c-plan-badge" style="margin-bottom:16px;">
+            <div>
+              <div class="c-plan-nome" id="c-confirm-plano"></div>
+              <div class="c-plan-vel" id="c-confirm-nome-cliente"></div>
+            </div>
+            <div style="text-align:right">
+              <div class="c-plan-preco" id="c-confirm-preco"></div>
+              <div class="c-plan-mes">/mês</div>
+            </div>
+          </div>
+          <div class="m-pix-qr" id="c-pix-qr">📷</div>
+          <div class="m-pix-wrap">
+            <textarea class="m-pix-code" id="c-pix-code" rows="3" readonly></textarea>
+            <button class="m-copy-btn" onclick="cCopiarPix()">Copiar</button>
+          </div>
+          <p style="font-size:11px;color:#aaa;margin-bottom:14px;">⏱ Pix expira em 30 minutos</p>
+        </div>
+        <button class="m-btn" style="background:#f4f6fb;color:#777;font-size:13px;" onclick="fecharContratacaoDireto()">Fechar — pagarei depois</button>
+      </div>
+
+      <!-- TELA 4: SUCESSO (após confirmação manual) -->
+      <div class="modal-screen" id="cs-sucesso">
+        <div style="text-align:center;padding:20px 0;">
+          <div style="font-size:4rem;margin-bottom:12px;">🎉</div>
+          <h3 style="font-family:'Montserrat',sans-serif;font-size:1.3rem;color:#065f46;margin-bottom:8px;">Pedido recebido!</h3>
+          <p style="font-size:14px;color:#555;line-height:1.6;">Nossa equipe entrará em contato em breve pelo <strong>WhatsApp</strong> para agendar a instalação.</p>
+          <button class="m-btn m-btn-primary" style="margin-top:20px;" onclick="fecharContratacaoDireto()">Fechar</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <!-- FABs -->
 <a href="https://wa.me/5500000000000" class="fab-whatsapp" target="_blank">💬</a>
 <button class="fab-a11y">♿</button>
@@ -872,7 +1037,18 @@
   // ── COOKIE ──
   function hideCookie() { document.getElementById('cookie-banner').style.display = 'none'; }
 
-  // ── MODAL ──
+  // ── MODAL 2ª VIA ──
+  function abrirModal() {
+    document.getElementById('modal-boleto').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function fecharModalDireto() {
+    document.getElementById('modal-boleto').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  function fecharModal(e) {
+    if (e.target === document.getElementById('modal-boleto')) fecharModalDireto();
+  }
   function abrirModal() {
     document.getElementById('modal-boleto').classList.add('open');
     document.body.style.overflow = 'hidden';
@@ -1019,6 +1195,140 @@
       'R$ ' + parseFloat(mFaturaSelecionada.valor).toFixed(2).replace('.',',');
     document.getElementById('m-pix-code').value = data.pixCopiaECola || '';
     mMostrar('ms-pix');
+  }
+
+  // ── CONTRATAÇÃO ──
+  let cPlanoAtual = {};
+
+  function abrirContratacao(nome, vel, preco) {
+    cPlanoAtual = { nome, vel, preco };
+    document.getElementById('c-nome-plano').textContent = nome;
+    document.getElementById('c-vel-plano').textContent = vel;
+    document.getElementById('c-preco-plano').textContent = 'R$ ' + parseFloat(preco).toFixed(2).replace('.',',');
+    document.getElementById('c-erro').style.display = 'none';
+    document.getElementById('c-nome').value = '';
+    document.getElementById('c-cpf').value = '';
+    document.getElementById('c-email').value = '';
+    document.getElementById('c-tel').value = '';
+    cSetStep(1);
+    cMostrar('cs-form');
+    document.getElementById('modal-contratacao').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function fecharContratacaoDireto() {
+    document.getElementById('modal-contratacao').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  function fecharContratacao(e) {
+    if (e.target === document.getElementById('modal-contratacao')) fecharContratacaoDireto();
+  }
+
+  function cSetStep(n) {
+    [1,2,3].forEach(i => {
+      const el = document.getElementById('cs'+i);
+      if (el) el.className = 'mstep' + (i < n ? ' done' : i === n ? ' active' : '');
+    });
+    [1,2].forEach(i => {
+      const el = document.getElementById('cl'+i);
+      if (el) el.className = 'mstep-line' + (i < n ? ' done' : '');
+    });
+  }
+
+  function cMostrar(id) {
+    ['cs-form','cs-loading','cs-pix','cs-sucesso'].forEach(s => {
+      const el = document.getElementById(s);
+      if (el) el.classList.remove('active');
+    });
+    const target = document.getElementById(id);
+    if (target) target.classList.add('active');
+  }
+
+  // Máscaras contratação
+  document.getElementById('c-cpf').addEventListener('input', function () {
+    let v = this.value.replace(/\D/g, '').slice(0, 11);
+    v = v.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+    this.value = v;
+  });
+  document.getElementById('c-tel').addEventListener('input', function () {
+    let v = this.value.replace(/\D/g, '').slice(0, 11);
+    v = v.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d)/, '$1-$2');
+    this.value = v;
+  });
+
+  async function cAvancar() {
+    const nome  = document.getElementById('c-nome').value.trim();
+    const cpf   = document.getElementById('c-cpf').value;
+    const email = document.getElementById('c-email').value.trim();
+    const tel   = document.getElementById('c-tel').value;
+    const erroEl = document.getElementById('c-erro');
+    erroEl.style.display = 'none';
+
+    if (!nome)                               { erroEl.textContent = 'Informe seu nome completo.';  erroEl.style.display='block'; return; }
+    if (cpf.replace(/\D/g,'').length < 11)  { erroEl.textContent = 'Informe um CPF válido.';       erroEl.style.display='block'; return; }
+    if (!email.includes('@'))               { erroEl.textContent = 'Informe um e-mail válido.';    erroEl.style.display='block'; return; }
+    if (tel.replace(/\D/g,'').length < 10)  { erroEl.textContent = 'Informe um telefone válido.';  erroEl.style.display='block'; return; }
+
+    cSetStep(2);
+    cMostrar('cs-loading');
+
+    try {
+      const resp = await fetch(`${BACKEND}/gerar-pix`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          valor:     cPlanoAtual.preco,
+          cpf,
+          nome,
+          descricao: `Contratação ${cPlanoAtual.nome} – ${cPlanoAtual.vel}`,
+        }),
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.sucesso) throw new Error(data.erro || 'Erro ao gerar Pix.');
+      cRenderPix(data, nome);
+    } catch (err) {
+      cSetStep(1);
+      cMostrar('cs-form');
+      erroEl.textContent = 'Erro ao gerar Pix: ' + err.message;
+      erroEl.style.display = 'block';
+    }
+  }
+
+  function cRenderPix(data, nomeCliente) {
+    const qrEl = document.getElementById('c-pix-qr');
+    qrEl.innerHTML = data.qrCodeBase64
+      ? `<img src="data:image/png;base64,${data.qrCodeBase64}">`
+      : '📷';
+    document.getElementById('c-confirm-plano').textContent = cPlanoAtual.nome + ' – ' + cPlanoAtual.vel;
+    document.getElementById('c-confirm-nome-cliente').textContent = nomeCliente;
+    document.getElementById('c-confirm-preco').textContent = 'R$ ' + parseFloat(cPlanoAtual.preco).toFixed(2).replace('.',',');
+    document.getElementById('c-pix-code').value = data.pixCopiaECola || '';
+    cSetStep(3);
+    cMostrar('cs-pix');
+  }
+
+  // Sobrescreve a versão stub do topo com a versão completa
+  abrirContratacao = function(nome, vel, preco) {
+    cPlanoAtual = { nome, vel, preco };
+    document.getElementById('c-nome-plano').textContent = nome;
+    document.getElementById('c-vel-plano').textContent = vel;
+    document.getElementById('c-preco-plano').textContent = 'R$ ' + parseFloat(preco).toFixed(2).replace('.',',');
+    document.getElementById('c-erro').style.display = 'none';
+    document.getElementById('c-nome').value = '';
+    document.getElementById('c-cpf').value = '';
+    document.getElementById('c-email').value = '';
+    document.getElementById('c-tel').value = '';
+    cSetStep(1);
+    cMostrar('cs-form');
+    document.getElementById('modal-contratacao').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  };
+
+  // Processa chamada pendente (se o usuário clicou antes do DOM carregar)
+  if (window._pendingContratacao) {
+    const p = window._pendingContratacao;
+    abrirContratacao(p.nome, p.vel, p.preco);
+    window._pendingContratacao = null;
   }
 
   function mCopiarPix() {
