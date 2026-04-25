@@ -278,6 +278,7 @@ app.post('/gerar-pix', async (req, res) => {
     products: [
       {
         id:       PRODUTO_ID,
+        name:     'Internet Fibra Unifique',
         quantity: 1,
         price:    parseFloat(valor),
       }
