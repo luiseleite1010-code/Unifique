@@ -542,6 +542,20 @@
     padding: 5px 10px; font-size: 11px; font-weight: 800; cursor: pointer;
   }
 
+  /* ── DISPONIBILIDADE — cards de plano ── */
+  .dp-plano-card {
+    border: 2px solid #e0e6f0; border-radius: 14px; padding: 16px 18px;
+    cursor: pointer; transition: border-color .2s, transform .15s, box-shadow .2s;
+    background: #fff;
+  }
+  .dp-plano-card:hover { border-color: var(--blue-mid); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(26,58,173,.1); }
+  .dp-plano-card.sel { border-color: var(--blue-mid); background: #f0f4ff; }
+  .dp-destaque {
+    background: linear-gradient(135deg, var(--blue-dark), var(--blue-mid));
+    border-color: var(--blue-mid);
+  }
+  .dp-destaque.sel { border-color: var(--yellow); box-shadow: 0 6px 20px rgba(245,197,24,.3); }
+
   /* ── MODAL CONTRATAÇÃO ── */
   #modal-contratacao .modal-header { background: linear-gradient(135deg, #064e3b, #10b981); }
   .c-plan-badge {
@@ -870,11 +884,11 @@
       <p>Emita sua segunda via de forma rápida e sem complicações.</p>
       <a class="card-link" onclick="abrirModal()">Acessar →</a>
     </div>
-    <div class="service-card">
+    <div class="service-card" onclick="abrirDisponibilidade()">
       <div class="service-icon icon-cyan">🌐</div>
       <h3>Verificar Disponibilidade</h3>
       <p>Consulte se a fibra ótica já chegou na sua região.</p>
-      <a href="#" class="card-link">Consultar →</a>
+      <a class="card-link" onclick="abrirDisponibilidade()">Consultar →</a>
     </div>
     <div class="service-card">
       <div class="service-icon icon-yellow">📺</div>
@@ -1468,6 +1482,221 @@
   </div>
 </div>
 
+<!-- MODAL DISPONIBILIDADE -->
+<div class="modal-overlay" id="modal-disp" onclick="fecharDisp(event)">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header" style="background:linear-gradient(135deg,#0e7490,#0891b2);">
+      <h2>🌐 Verificar Disponibilidade</h2>
+      <button class="modal-close" onclick="fecharDispDireto()">✕</button>
+    </div>
+
+    <div class="modal-steps">
+      <div class="mstep active" id="dp1"><div class="mstep-circle">1</div><div class="mstep-label">Endereço</div></div>
+      <div class="mstep-line" id="dpl1"></div>
+      <div class="mstep" id="dp2"><div class="mstep-circle">2</div><div class="mstep-label">Planos</div></div>
+      <div class="mstep-line" id="dpl2"></div>
+      <div class="mstep" id="dp3"><div class="mstep-circle">3</div><div class="mstep-label">Instalação</div></div>
+    </div>
+
+    <div class="modal-body">
+
+      <!-- TELA 1: FORMULÁRIO -->
+      <div class="modal-screen active" id="dp-form">
+        <p style="font-size:13px;color:#777;margin-bottom:16px;">Preencha seus dados para verificar a disponibilidade na sua região:</p>
+        <div class="m-erro" id="dp-erro"></div>
+
+        <div class="c-row">
+          <div>
+            <label class="m-label">Nome completo</label>
+            <div class="m-input-wrap">
+              <span class="m-icon">👤</span>
+              <input type="text" id="dp-nome" placeholder="Seu nome">
+            </div>
+          </div>
+          <div>
+            <label class="m-label">CPF</label>
+            <div class="m-input-wrap">
+              <span class="m-icon">🪪</span>
+              <input type="text" id="dp-cpf" placeholder="000.000.000-00" maxlength="14">
+            </div>
+          </div>
+        </div>
+
+        <label class="m-label">CEP</label>
+        <div class="m-input-wrap" style="margin-bottom:8px;">
+          <span class="m-icon">📍</span>
+          <input type="text" id="dp-cep" placeholder="00000-000" maxlength="9">
+        </div>
+
+        <div class="c-row">
+          <div>
+            <label class="m-label">Rua / Logradouro</label>
+            <div class="m-input-wrap">
+              <span class="m-icon">🏠</span>
+              <input type="text" id="dp-rua" placeholder="Rua das Flores">
+            </div>
+          </div>
+          <div>
+            <label class="m-label">Número</label>
+            <div class="m-input-wrap">
+              <span class="m-icon">#</span>
+              <input type="text" id="dp-num" placeholder="123">
+            </div>
+          </div>
+        </div>
+
+        <div class="c-row">
+          <div>
+            <label class="m-label">Bairro</label>
+            <div class="m-input-wrap">
+              <span class="m-icon">🏘️</span>
+              <input type="text" id="dp-bairro" placeholder="Centro">
+            </div>
+          </div>
+          <div>
+            <label class="m-label">Cidade</label>
+            <div class="m-input-wrap">
+              <span class="m-icon">🏙️</span>
+              <input type="text" id="dp-cidade" placeholder="Blumenau">
+            </div>
+          </div>
+        </div>
+
+        <button class="m-btn" style="background:linear-gradient(135deg,#0e7490,#0891b2);color:#fff;" onclick="dpConsultar()">
+          🔍 Verificar disponibilidade
+        </button>
+      </div>
+
+      <!-- TELA 2: LOADING -->
+      <div class="modal-screen" id="dp-loading">
+        <div class="m-loading">
+          <div class="m-spinner" style="border-top-color:#0891b2;"></div>
+          <p>Verificando cobertura na sua região...<br><small style="color:#aaa">Aguarde um momento</small></p>
+        </div>
+      </div>
+
+      <!-- TELA 3: PLANOS DISPONÍVEIS -->
+      <div class="modal-screen" id="dp-planos">
+        <div style="text-align:center;margin-bottom:16px;">
+          <div style="font-size:2rem;margin-bottom:6px;">✅</div>
+          <h3 style="font-family:'Montserrat',sans-serif;font-size:1.1rem;color:#0e7490;margin-bottom:4px;">Ótima notícia!</h3>
+          <p style="font-size:13px;color:#777;">A fibra Unifique está disponível no seu endereço.<br>Escolha seu plano:</p>
+        </div>
+
+        <!-- Cards de plano compactos -->
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
+          <div class="dp-plano-card" onclick="dpSelecionarPlano(this,'Plano Essencial','200MB','79.90')" data-plano="Plano Essencial">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <div style="font-family:'Montserrat',sans-serif;font-weight:900;font-size:1rem;color:var(--blue-dark);">200 MB</div>
+                <div style="font-size:12px;color:#888;">Plano Essencial · Wi-Fi incluso</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-family:'Montserrat',sans-serif;font-weight:900;font-size:1.2rem;color:var(--blue-mid);">R$ 79,90</div>
+                <div style="font-size:11px;color:#aaa;">/mês</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="dp-plano-card dp-destaque" onclick="dpSelecionarPlano(this,'Plano Turbo','500MB','109.90')" data-plano="Plano Turbo">
+            <div style="font-size:10px;font-weight:900;color:var(--yellow);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">⭐ Mais popular</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <div style="font-family:'Montserrat',sans-serif;font-weight:900;font-size:1rem;color:#fff;">500 MB</div>
+                <div style="font-size:12px;color:rgba(255,255,255,.7);">Plano Turbo · Wi-Fi + Streaming</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-family:'Montserrat',sans-serif;font-weight:900;font-size:1.2rem;color:var(--yellow);">R$ 109,90</div>
+                <div style="font-size:11px;color:rgba(255,255,255,.6);">/mês</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="dp-plano-card" onclick="dpSelecionarPlano(this,'Plano Ultra','1GB','159.90')" data-plano="Plano Ultra">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <div style="font-family:'Montserrat',sans-serif;font-weight:900;font-size:1rem;color:var(--blue-dark);">1 GB</div>
+                <div style="font-size:12px;color:#888;">Plano Ultra · Wi-Fi 6 + TV + Streaming</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-family:'Montserrat',sans-serif;font-weight:900;font-size:1.2rem;color:var(--blue-mid);">R$ 159,90</div>
+                <div style="font-size:11px;color:#aaa;">/mês</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button class="m-btn" style="background:linear-gradient(135deg,#0e7490,#0891b2);color:#fff;" id="dp-btn-contratar" onclick="dpIrInstalacao()" disabled>
+          Contratar plano selecionado →
+        </button>
+        <button class="m-btn m-btn-gray" onclick="dpSetStep(1);dpMostrar('dp-form');">← Voltar</button>
+      </div>
+
+      <!-- TELA 4: TAXA DE INSTALAÇÃO -->
+      <div class="modal-screen" id="dp-instalacao">
+        <div style="background:#f0fdf4;border:2px solid #86efac;border-radius:14px;padding:18px;margin-bottom:14px;">
+          <div style="font-size:12px;color:#166534;font-weight:700;margin-bottom:4px;">PLANO SELECIONADO</div>
+          <div style="font-family:'Montserrat',sans-serif;font-weight:900;font-size:1.1rem;color:#111;" id="dp-confirm-plano"></div>
+          <div style="font-size:13px;color:#555;margin-top:2px;" id="dp-confirm-preco"></div>
+        </div>
+
+        <div style="background:#fefce8;border:2px solid #fde047;border-radius:14px;padding:18px;margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <div style="font-size:12px;color:#854d0e;font-weight:700;margin-bottom:2px;">TAXA DE INSTALAÇÃO</div>
+              <div style="font-size:12px;color:#713f12;">Instalação da fibra no seu endereço</div>
+            </div>
+            <div style="font-family:'Montserrat',sans-serif;font-weight:900;font-size:1.4rem;color:#854d0e;">R$ 79,99</div>
+          </div>
+        </div>
+
+        <div class="m-erro" id="dp-erro-inst"></div>
+
+        <label class="m-label">E-mail</label>
+        <div class="m-input-wrap">
+          <span class="m-icon">✉️</span>
+          <input type="email" id="dp-email" placeholder="seu@email.com">
+        </div>
+        <label class="m-label">Telefone / WhatsApp</label>
+        <div class="m-input-wrap">
+          <span class="m-icon">📱</span>
+          <input type="text" id="dp-tel" placeholder="(47) 99999-9999" maxlength="15">
+        </div>
+
+        <button class="m-btn" style="background:#16a34a;color:#fff;" onclick="dpGerarPix()">⚡ Pagar taxa e agendar instalação</button>
+        <button class="m-btn m-btn-gray" onclick="dpSetStep(2);dpMostrar('dp-planos');">← Voltar</button>
+      </div>
+
+      <!-- TELA 5: PIX LOADING -->
+      <div class="modal-screen" id="dp-pix-loading">
+        <div class="m-loading">
+          <div class="m-spinner" style="border-top-color:#16a34a;"></div>
+          <p>Gerando Pix da instalação...<br><small style="color:#aaa">Aguarde um momento</small></p>
+        </div>
+      </div>
+
+      <!-- TELA 6: PIX -->
+      <div class="modal-screen" id="dp-pix">
+        <div class="m-pix">
+          <p style="font-size:13px;color:#555;margin-bottom:12px;font-weight:600;">Pague a taxa de instalação para confirmar seu agendamento:</p>
+          <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:12px;margin-bottom:14px;font-size:13px;color:#166534;font-weight:700;text-align:center;" id="dp-pix-resumo"></div>
+          <div class="m-pix-qr" id="dp-pix-qr">📷</div>
+          <div class="m-pix-valor">R$ 79,99</div>
+          <div class="m-pix-label">Escaneie o QR Code ou copie o código abaixo</div>
+          <div class="m-pix-wrap">
+            <textarea class="m-pix-code" id="dp-pix-code" rows="3" readonly></textarea>
+            <button class="m-copy-btn" onclick="dpCopiarPix()">Copiar</button>
+          </div>
+          <p style="font-size:11px;color:#aaa;margin-bottom:10px;">⏱ Pix expira em 30 minutos</p>
+          <p style="font-size:12px;color:#10b981;font-weight:700;text-align:center;">✅ Após o pagamento entraremos em contato pelo WhatsApp para agendar a instalação!</p>
+        </div>
+        <button class="m-btn m-btn-gray" style="margin-top:12px;" onclick="fecharDispDireto()">Fechar</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <!-- FABs -->
 <a href="https://wa.me/5500000000000" class="fab-whatsapp" target="_blank">💬</a>
 <button class="fab-a11y">♿</button>
@@ -1722,6 +1951,172 @@
       'R$ ' + parseFloat(mFaturaSelecionada.valor).toFixed(2).replace('.',',');
     document.getElementById('m-pix-code').value = data.pixCopiaECola || '';
     mMostrar('ms-pix');
+  }
+
+  // ── DISPONIBILIDADE ──
+  let dpPlanoSelecionado = null;
+
+  function abrirDisponibilidade() {
+    ['dp-nome','dp-cpf','dp-cep','dp-rua','dp-num','dp-bairro','dp-cidade'].forEach(id => {
+      const el = document.getElementById(id); if(el) el.value = '';
+    });
+    document.getElementById('dp-erro').style.display = 'none';
+    dpPlanoSelecionado = null;
+    dpSetStep(1); dpMostrar('dp-form');
+    document.getElementById('modal-disp').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function fecharDispDireto() {
+    document.getElementById('modal-disp').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  function fecharDisp(e) {
+    if (e.target === document.getElementById('modal-disp')) fecharDispDireto();
+  }
+  function dpSetStep(n) {
+    [1,2,3].forEach(i => {
+      const el = document.getElementById('dp'+i);
+      if (el) el.className = 'mstep' + (i < n ? ' done' : i === n ? ' active' : '');
+    });
+    [1,2].forEach(i => {
+      const el = document.getElementById('dpl'+i);
+      if (el) el.className = 'mstep-line' + (i < n ? ' done' : '');
+    });
+  }
+  function dpMostrar(id) {
+    ['dp-form','dp-loading','dp-planos','dp-instalacao','dp-pix-loading','dp-pix'].forEach(s => {
+      const el = document.getElementById(s); if(el) el.classList.remove('active');
+    });
+    const el = document.getElementById(id); if(el) el.classList.add('active');
+  }
+
+  // Máscara CEP
+  document.getElementById('dp-cep').addEventListener('input', function() {
+    let v = this.value.replace(/\D/g,'').slice(0,8);
+    v = v.replace(/(\d{5})(\d)/,'$1-$2');
+    this.value = v;
+    // Auto-preenche endereço via ViaCEP
+    if (v.replace(/\D/g,'').length === 8) dpBuscarCEP(v.replace(/\D/g,''));
+  });
+  // Máscara CPF disponibilidade
+  document.getElementById('dp-cpf').addEventListener('input', function() {
+    let v = this.value.replace(/\D/g,'').slice(0,11);
+    v = v.replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2');
+    this.value = v;
+  });
+  // Máscara tel disponibilidade
+  document.getElementById('dp-tel').addEventListener('input', function() {
+    let v = this.value.replace(/\D/g,'').slice(0,11);
+    v = v.replace(/(\d{2})(\d)/,'($1) $2').replace(/(\d{5})(\d)/,'$1-$2');
+    this.value = v;
+  });
+
+  async function dpBuscarCEP(cep) {
+    try {
+      const r = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+      const d = await r.json();
+      if (!d.erro) {
+        document.getElementById('dp-rua').value    = d.logradouro || '';
+        document.getElementById('dp-bairro').value = d.bairro     || '';
+        document.getElementById('dp-cidade').value = d.localidade || '';
+        document.getElementById('dp-num').focus();
+      }
+    } catch(_) {}
+  }
+
+  async function dpConsultar() {
+    const nome   = document.getElementById('dp-nome').value.trim();
+    const cpf    = document.getElementById('dp-cpf').value;
+    const cep    = document.getElementById('dp-cep').value;
+    const rua    = document.getElementById('dp-rua').value.trim();
+    const num    = document.getElementById('dp-num').value.trim();
+    const cidade = document.getElementById('dp-cidade').value.trim();
+    const erroEl = document.getElementById('dp-erro');
+    erroEl.style.display = 'none';
+
+    if (!nome)                              { erroEl.textContent='Informe seu nome.'; erroEl.style.display='block'; return; }
+    if (cpf.replace(/\D/g,'').length < 11) { erroEl.textContent='Informe um CPF válido.'; erroEl.style.display='block'; return; }
+    if (cep.replace(/\D/g,'').length < 8)  { erroEl.textContent='Informe um CEP válido.'; erroEl.style.display='block'; return; }
+    if (!rua)                               { erroEl.textContent='Informe a rua.'; erroEl.style.display='block'; return; }
+    if (!num)                               { erroEl.textContent='Informe o número.'; erroEl.style.display='block'; return; }
+    if (!cidade)                            { erroEl.textContent='Informe a cidade.'; erroEl.style.display='block'; return; }
+
+    dpSetStep(2); dpMostrar('dp-loading');
+
+    // Simula verificação de cobertura (2.5s)
+    await new Promise(r => setTimeout(r, 2500));
+
+    // Reseta seleção de plano
+    dpPlanoSelecionado = null;
+    document.querySelectorAll('.dp-plano-card').forEach(c => c.classList.remove('sel'));
+    document.getElementById('dp-btn-contratar').disabled = true;
+    dpMostrar('dp-planos');
+  }
+
+  function dpSelecionarPlano(el, nome, vel, preco) {
+    document.querySelectorAll('.dp-plano-card').forEach(c => c.classList.remove('sel'));
+    el.classList.add('sel');
+    dpPlanoSelecionado = { nome, vel, preco };
+    document.getElementById('dp-btn-contratar').disabled = false;
+  }
+
+  function dpIrInstalacao() {
+    if (!dpPlanoSelecionado) return;
+    document.getElementById('dp-confirm-plano').textContent = `${dpPlanoSelecionado.nome} – ${dpPlanoSelecionado.vel}`;
+    document.getElementById('dp-confirm-preco').textContent = `R$ ${parseFloat(dpPlanoSelecionado.preco).toFixed(2).replace('.',',')} /mês`;
+    document.getElementById('dp-email').value = '';
+    document.getElementById('dp-tel').value = '';
+    document.getElementById('dp-erro-inst').style.display = 'none';
+    dpSetStep(3); dpMostrar('dp-instalacao');
+  }
+
+  async function dpGerarPix() {
+    const email  = document.getElementById('dp-email').value.trim();
+    const tel    = document.getElementById('dp-tel').value;
+    const nome   = document.getElementById('dp-nome').value.trim();
+    const cpf    = document.getElementById('dp-cpf').value;
+    const erroEl = document.getElementById('dp-erro-inst');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    erroEl.style.display = 'none';
+    if (!emailRegex.test(email)) { erroEl.textContent='Informe um e-mail válido.'; erroEl.style.display='block'; return; }
+    if (tel.replace(/\D/g,'').length < 11) { erroEl.textContent='Informe um telefone com DDD (11 dígitos).'; erroEl.style.display='block'; return; }
+
+    dpMostrar('dp-pix-loading');
+
+    try {
+      const tl = tel.replace(/\D/g,'');
+      const telFmt = tl.length===11 ? `(${tl.slice(0,2)}) ${tl.slice(2,7)}-${tl.slice(7)}` : tel;
+      const resp = await fetch(`${BACKEND}/gerar-pix`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          valor: '79.99', cpf, nome, email, telefone: telFmt,
+          descricao: `Taxa de instalação – ${dpPlanoSelecionado.nome}`,
+        }),
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.sucesso) throw new Error(data.erro || 'Erro ao gerar Pix.');
+
+      const qrEl = document.getElementById('dp-pix-qr');
+      if (data.qrCodeBase64) {
+        const b64 = data.qrCodeBase64.includes('base64,') ? data.qrCodeBase64 : `data:image/png;base64,${data.qrCodeBase64}`;
+        qrEl.innerHTML = `<img src="${b64}" style="width:100%;border-radius:8px;">`;
+      } else if (data.qrCodeUrl) {
+        qrEl.innerHTML = `<img src="${data.qrCodeUrl}" style="width:100%;border-radius:8px;">`;
+      } else { qrEl.innerHTML = '📷'; }
+
+      document.getElementById('dp-pix-code').value = data.pixCopiaECola || '';
+      document.getElementById('dp-pix-resumo').textContent =
+        `${dpPlanoSelecionado.nome} ${dpPlanoSelecionado.vel} · R$ ${parseFloat(dpPlanoSelecionado.preco).toFixed(2).replace('.',',')} /mês`;
+      dpMostrar('dp-pix');
+    } catch(err) {
+      dpMostrar('dp-instalacao');
+      erroEl.textContent = 'Erro ao gerar Pix: ' + err.message;
+      erroEl.style.display = 'block';
+    }
+  }
+
+  function dpCopiarPix() {
+    copiarTexto(document.getElementById('dp-pix-code').value, document.querySelector('#dp-pix .m-copy-btn'));
   }
 
   // ── SUPORTE TÉCNICO ──
