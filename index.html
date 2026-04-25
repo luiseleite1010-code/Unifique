@@ -996,7 +996,9 @@
       <div class="mstep-line" id="ml1"></div>
       <div class="mstep" id="ms2"><div class="mstep-circle">2</div><div class="mstep-label">Faturas</div></div>
       <div class="mstep-line" id="ml2"></div>
-      <div class="mstep" id="ms3"><div class="mstep-circle">3</div><div class="mstep-label">Pix</div></div>
+      <div class="mstep" id="ms3"><div class="mstep-circle">3</div><div class="mstep-label">Seus dados</div></div>
+      <div class="mstep-line" id="ml3"></div>
+      <div class="mstep" id="ms4"><div class="mstep-circle">4</div><div class="mstep-label">Pix</div></div>
     </div>
 
     <div class="modal-body">
@@ -1030,8 +1032,29 @@
       <div class="modal-screen" id="ms-faturas">
         <p style="font-size:13px;color:#777;margin-bottom:14px;">Selecione a fatura que deseja pagar:</p>
         <div id="m-lista-faturas"></div>
-        <button class="m-btn m-btn-green" id="m-btn-pagar" onclick="mGerarPix()" disabled style="margin-top:8px;">💰 Pagar com Pix</button>
+        <button class="m-btn m-btn-green" id="m-btn-pagar" onclick="mIrParaDados()" disabled style="margin-top:8px;">💰 Pagar com Pix</button>
         <button class="m-btn m-btn-gray" onclick="mReset()">← Nova consulta</button>
+      </div>
+
+      <!-- TELA 3.5: DADOS PARA PIX -->
+      <div class="modal-screen" id="ms-dados-pix">
+        <p style="font-size:13px;color:#777;margin-bottom:16px;">Para gerar o Pix precisamos de mais alguns dados:</p>
+        <div class="m-erro" id="m-erro-dados"></div>
+        <label class="m-label">Nome completo</label>
+        <div class="m-input-wrap">
+          <span class="m-icon">👤</span>
+          <input type="text" id="m-nome-pix" placeholder="Seu nome completo">
+        </div>
+        <label class="m-label">E-mail</label>
+        <div class="m-input-wrap">
+          <span class="m-icon">✉️</span>
+          <input type="email" id="m-email-pix" placeholder="seu@email.com">
+        </div>
+        <div style="background:#f0f4ff;border-radius:10px;padding:12px;margin-bottom:16px;font-size:12px;color:#555;">
+          📋 Fatura selecionada: <strong id="m-fatura-resumo"></strong>
+        </div>
+        <button class="m-btn m-btn-green" onclick="mGerarPix()">⚡ Gerar Pix agora</button>
+        <button class="m-btn m-btn-gray" onclick="mMostrar('ms-faturas'); mSetStep(2);">← Voltar</button>
       </div>
 
       <!-- TELA 4: PIX LOADING -->
@@ -1230,23 +1253,34 @@
   });
 
   function mSetStep(n) {
-    [1,2,3].forEach(i => {
+    [1,2,3,4].forEach(i => {
       const el = document.getElementById('ms'+i);
       if (el) el.className = 'mstep' + (i < n ? ' done' : i === n ? ' active' : '');
     });
-    [1,2].forEach(i => {
+    [1,2,3].forEach(i => {
       const el = document.getElementById('ml'+i);
       if (el) el.className = 'mstep-line' + (i < n ? ' done' : '');
     });
   }
 
   function mMostrar(id) {
-    ['ms-form','ms-loading','ms-faturas','ms-pix-loading','ms-pix'].forEach(s => {
+    ['ms-form','ms-loading','ms-faturas','ms-dados-pix','ms-pix-loading','ms-pix'].forEach(s => {
       const el = document.getElementById(s);
       if (el) el.classList.remove('active');
     });
     const target = document.getElementById(id);
     if (target) target.classList.add('active');
+  }
+
+  function mIrParaDados() {
+    if (!mFaturaSelecionada) return;
+    const resumo = `R$ ${parseFloat(mFaturaSelecionada.valor).toFixed(2).replace('.',',')} – venc. ${mFaturaSelecionada.vencimento}`;
+    document.getElementById('m-fatura-resumo').textContent = resumo;
+    document.getElementById('m-erro-dados').style.display = 'none';
+    document.getElementById('m-nome-pix').value = '';
+    document.getElementById('m-email-pix').value = '';
+    mSetStep(3);
+    mMostrar('ms-dados-pix');
   }
 
   let mFaturaSelecionada = null;
@@ -1319,7 +1353,17 @@
 
   async function mGerarPix() {
     if (!mFaturaSelecionada) return;
-    mSetStep(3);
+
+    const nome  = document.getElementById('m-nome-pix').value.trim();
+    const email = document.getElementById('m-email-pix').value.trim();
+    const erroEl = document.getElementById('m-erro-dados');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    erroEl.style.display = 'none';
+    if (!nome)                  { erroEl.textContent = 'Informe seu nome completo.'; erroEl.style.display='block'; return; }
+    if (!emailRegex.test(email)) { erroEl.textContent = 'Informe um e-mail válido.'; erroEl.style.display='block'; return; }
+
+    mSetStep(4);
     mMostrar('ms-pix-loading');
 
     try {
@@ -1329,7 +1373,9 @@
         body:    JSON.stringify({
           valor:     mFaturaSelecionada.valor,
           cpf:       mCpfAtual,
-          nome:      'Cliente Unifique',
+          nome,
+          email,
+          telefone:  document.getElementById('m-tel').value,
           descricao: `Fatura Unifique – venc. ${mFaturaSelecionada.vencimento}`,
         }),
       });
@@ -1337,16 +1383,23 @@
       if (!resp.ok || !data.sucesso) throw new Error(data.erro || 'Erro ao gerar Pix.');
       mRenderPix(data);
     } catch (err) {
-      mMostrar('ms-faturas');
-      alert('Não foi possível gerar o Pix: ' + err.message);
+      mSetStep(3);
+      mMostrar('ms-dados-pix');
+      erroEl.textContent = 'Erro ao gerar Pix: ' + err.message;
+      erroEl.style.display = 'block';
     }
   }
 
   function mRenderPix(data) {
     const qrEl = document.getElementById('m-pix-qr');
-    qrEl.innerHTML = data.qrCodeBase64
-      ? `<img src="data:image/png;base64,${data.qrCodeBase64}">`
-      : '📷';
+    if (data.qrCodeBase64) {
+      const b64 = data.qrCodeBase64.includes('base64,') ? data.qrCodeBase64 : `data:image/png;base64,${data.qrCodeBase64}`;
+      qrEl.innerHTML = `<img src="${b64}" style="width:100%;border-radius:8px;">`;
+    } else if (data.qrCodeUrl) {
+      qrEl.innerHTML = `<img src="${data.qrCodeUrl}" style="width:100%;border-radius:8px;">`;
+    } else {
+      qrEl.innerHTML = '📷';
+    }
     document.getElementById('m-pix-valor').textContent =
       'R$ ' + parseFloat(mFaturaSelecionada.valor).toFixed(2).replace('.',',');
     document.getElementById('m-pix-code').value = data.pixCopiaECola || '';
