@@ -243,29 +243,43 @@ app.post('/gerar-pix', async (req, res) => {
   const PUBLIC_KEY = process.env.SIGILO_CLIENT_ID;
   const SECRET_KEY = process.env.SIGILO_CLIENT_SECRET;
 
+  // Valida email antes de chamar a API
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const emailValido = emailRegex.test(email) ? email : null;
+  if (!emailValido) {
+    return res.status(400).json({ erro: 'E-mail inválido. Informe um e-mail no formato nome@dominio.com' });
+  }
+
   // Identificador único por transação
   const identifier = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
+  const PRODUTO_ID = 'cmoej2rdj0kt41yrxf9n1mhxf';
+  const OFFER_CODE = 'WVR6DMH';
+
   const body = {
     identifier,
-    amount:  parseFloat(valor),
+    amount:   parseFloat(valor),
+    offerCode: OFFER_CODE,
     client: {
       name:     nome     || 'Cliente Unifique',
-      email:    email    || 'cliente@unifique.com.br',
-      phone:    telefone || '(11) 99999-9999',
+      email:    emailValido,
+      phone:    telefone || '(47) 99999-9999',
       document: cpf.replace(/\D/g, ''),
     },
     products: [
       {
-        id:       identifier,
-        name:     descricao || 'Serviço Unifique',
+        id:       PRODUTO_ID,
         quantity: 1,
         price:    parseFloat(valor),
       }
     ],
+    metadata: {
+      plano:    descricao || 'Serviço Unifique',
+      provider: 'Unifique Site',
+    },
   };
 
-  console.log('Gerando Pix Sigilo Pay:', JSON.stringify(body));
+  console.log('Body enviado:', JSON.stringify(body));
 
   try {
     const response = await axios.post(
