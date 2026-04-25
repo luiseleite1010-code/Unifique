@@ -1,335 +1,1521 @@
-/**
- * UNIFIQUE — Backend de Scraping + Pix
- * Deploy: Render.com (Node.js)
- * npm install express puppeteer-core @sparticuz/chromium axios cors
- */
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unifique – Internet Fibra</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Montserrat:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-const express   = require('express');
-const puppeteer = require('puppeteer-core');
-const chromium  = require('@sparticuz/chromium');
-const axios     = require('axios');
-const cors      = require('cors');
-
-const app = express();
-app.use(express.json());
-app.use(cors({ origin: '*' }));
-
-const SIGILO_API_KEY = process.env.SIGILO_API_KEY;
-const PORT           = process.env.PORT || 3000;
-
-// ── HELPER: lança browser ──
-async function launchBrowser() {
-  return puppeteer.launch({
-    args: [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-    defaultViewport: { width: 1280, height: 800 },
-    executablePath: await chromium.executablePath(),
-    headless: true,
-  });
-}
-
-// ── HELPER: digita em campo usando vários seletores ──
-async function typeInField(page, seletores, valor) {
-  for (const sel of seletores) {
-    try {
-      await page.waitForSelector(sel, { timeout: 4000, visible: true });
-      await page.click(sel, { clickCount: 3 });
-      await page.type(sel, valor, { delay: 50 });
-      console.log('Campo preenchido:', sel);
-      return true;
-    } catch (_) {}
+  :root {
+    --blue-dark: #0a1a6e;
+    --blue-mid: #1a3aad;
+    --blue-light: #2253d4;
+    --yellow: #f5c518;
+    --yellow-hover: #e0b010;
+    --cyan: #00bcd4;
+    --white: #ffffff;
+    --gray-light: #f4f6fb;
+    --gray-text: #555;
+    --radius: 12px;
   }
-  return false;
-}
 
-// ── HELPER: clica em botão ──
-async function clickButton(page, seletores) {
-  for (const sel of seletores) {
-    try {
-      await page.waitForSelector(sel, { timeout: 3000, visible: true });
-      await page.click(sel);
-      console.log('Botão clicado:', sel);
-      return true;
-    } catch (_) {}
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--white);
+    color: #111;
+    overflow-x: hidden;
   }
-  // Fallback: busca por texto
-  const textos = ['Continuar', 'Entrar', 'Confirmar', 'Próximo', 'Avançar', 'Acessar'];
-  for (const texto of textos) {
-    try {
-      const clicou = await page.evaluate((t) => {
-        const el = [...document.querySelectorAll('button, [role="button"]')]
-          .find(e => e.innerText?.trim().toLowerCase().includes(t.toLowerCase()));
-        if (el) { el.click(); return true; }
-        return false;
-      }, texto);
-      if (clicou) { console.log('Botão clicado por texto:', texto); return true; }
-    } catch (_) {}
+
+  /* ── COOKIE BANNER ── */
+  #cookie-banner {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 9999;
+    background: #111; color: #eee;
+    padding: 16px 32px;
+    display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+    box-shadow: 0 -4px 20px rgba(0,0,0,.4);
   }
-  return false;
-}
+  #cookie-banner p { flex: 1; font-size: 13px; line-height: 1.5; }
+  #cookie-banner p a { color: var(--cyan); }
+  #cookie-banner .cb-actions { display: flex; gap: 10px; flex-shrink: 0; }
+  .cb-btn { padding: 9px 22px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer; border: none; }
+  .cb-manage { background: transparent; color: #ccc; text-decoration: underline; cursor: pointer; font-size: 13px; border: none; }
+  .cb-accept { background: var(--blue-mid); color: #fff; }
+  .cb-reject { background: #444; color: #fff; }
+  #cookie-banner .cb-close { background: none; border: none; color: #aaa; font-size: 20px; cursor: pointer; }
 
-// ── HELPER: aguarda transição de página ──
-async function aguardar(page, ms = 2000) {
-  await new Promise(r => setTimeout(r, ms));
-}
+  /* ── HEADER ── */
+  header {
+    position: sticky; top: 0; z-index: 900;
+    background: #fff;
+    box-shadow: 0 2px 12px rgba(0,0,0,.1);
+  }
+  .header-inner {
+    max-width: 1280px; margin: 0 auto;
+    display: flex; align-items: center; gap: 8px;
+    padding: 0 24px; height: 64px;
+  }
+  .logo { display: flex; align-items: center; margin-right: 24px; }
+  .logo svg { height: 34px; }
 
-// ── HELPER: extrai faturas do DOM ──
-async function extrairFaturas(page) {
-  return page.evaluate(() => {
-    const faturas = [];
-    const vistas  = new Set();
-    const reValor = /R\$\s*([\d.]+,\d{2})/g;
-    const reData  = /(\d{2}\/\d{2}\/\d{4})/g;
+  /* NAV */
+  nav { display: flex; align-items: center; gap: 4px; flex: 1; }
+  .nav-item { position: relative; }
+  .nav-btn {
+    background: none; border: none; cursor: pointer;
+    font-family: 'Nunito', sans-serif; font-size: 14px; font-weight: 700;
+    color: #222; padding: 8px 14px; border-radius: 8px;
+    display: flex; align-items: center; gap: 5px;
+    transition: background .2s, color .2s;
+    white-space: nowrap;
+  }
+  .nav-btn:hover { background: var(--gray-light); color: var(--blue-mid); }
+  .nav-btn .chevron { font-size: 10px; transition: transform .25s; }
+  .nav-item:hover .chevron { transform: rotate(180deg); }
 
-    const candidatos = document.querySelectorAll(
-      'tr, li, .card, .item, .fatura, .invoice, .boleto, ' +
-      '[class*="fatura"], [class*="invoice"], [class*="boleto"], [class*="charge"], [class*="bill"]'
-    );
+  /* DROPDOWN */
+  .dropdown {
+    position: absolute; top: calc(100% + 4px); left: 0;
+    background: #fff; border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.15);
+    min-width: 200px; padding: 8px 0;
+    opacity: 0; pointer-events: none; transform: translateY(8px);
+    transition: opacity .2s, transform .2s;
+  }
+  .nav-item:hover .dropdown { opacity: 1; pointer-events: all; transform: translateY(0); }
+  .dropdown a {
+    display: block; padding: 10px 20px;
+    font-size: 14px; color: #333; text-decoration: none; font-weight: 600;
+    transition: background .15s, color .15s;
+  }
+  .dropdown a:hover { background: var(--gray-light); color: var(--blue-mid); }
 
-    candidatos.forEach(el => {
-      const texto = el.innerText || '';
-      if (texto.length < 5 || texto.length > 2000) return;
-      const valores = [...texto.matchAll(reValor)].map(m => m[1]);
-      const datas   = [...texto.matchAll(reData)].map(m => m[1]);
-      if (!valores.length || !datas.length) return;
-      const chave = valores[0] + datas[0];
-      if (vistas.has(chave)) return;
-      vistas.add(chave);
-      const valorNum = parseFloat(valores[0].replace(/\./g, '').replace(',', '.'));
-      if (valorNum < 1 || valorNum > 99999) return;
-      const textoLower = texto.toLowerCase();
-      let status = 'em aberto';
-      if (textoLower.includes('pago') || textoLower.includes('quitado')) status = 'pago';
-      else if (textoLower.includes('vencido') || textoLower.includes('atrasado')) status = 'vencido';
-      const reRef = /(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)[a-z]*[\s\/\-]*\d{4}/i;
-      const refMatch = texto.match(reRef);
-      faturas.push({
-        valor: valorNum.toFixed(2),
-        vencimento: datas[0],
-        referencia: refMatch ? refMatch[0] : datas[0],
-        status,
-      });
-    });
+  /* SEARCH */
+  .search-bar {
+    display: flex; align-items: center;
+    border: 1.5px solid #ddd; border-radius: 24px;
+    padding: 6px 16px; gap: 8px; margin-left: auto;
+    transition: border-color .2s;
+  }
+  .search-bar:focus-within { border-color: var(--blue-mid); }
+  .search-bar input { border: none; outline: none; font-size: 14px; width: 180px; background: transparent; }
+  .search-bar svg { color: #999; flex-shrink: 0; }
 
-    // Fallback: varre texto completo
-    if (faturas.length === 0) {
-      const paginaTexto = document.body.innerText;
-      const vs = [...paginaTexto.matchAll(reValor)].map(m => m[1]);
-      const ds = [...paginaTexto.matchAll(reData)].map(m => m[1]);
-      const usados = new Set();
-      vs.forEach((v, i) => {
-        const d = ds[i] || ds[0];
-        if (!d) return;
-        const chave = v + d;
-        if (usados.has(chave)) return;
-        usados.add(chave);
-        const valorNum = parseFloat(v.replace(/\./g, '').replace(',', '.'));
-        if (valorNum < 1 || valorNum > 99999) return;
-        faturas.push({ valor: valorNum.toFixed(2), vencimento: d, referencia: d, status: 'em aberto' });
-      });
+  /* HEADER BUTTONS */
+  .btn-services {
+    background: var(--blue-dark); color: #fff;
+    border: none; border-radius: 8px; padding: 9px 20px;
+    font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 14px;
+    cursor: pointer; display: flex; align-items: center; gap: 8px;
+    transition: background .2s;
+  }
+  .btn-services:hover { background: var(--blue-mid); }
+  .btn-help {
+    background: none; color: var(--blue-mid);
+    border: 2px solid var(--blue-mid); border-radius: 8px; padding: 7px 18px;
+    font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 14px;
+    cursor: pointer; display: flex; align-items: center; gap: 6px;
+    transition: background .2s, color .2s;
+  }
+  .btn-help:hover { background: var(--blue-mid); color: #fff; }
+
+  /* ── HAMBURGER MENU ── */
+  .btn-menu {
+    display: none;
+    flex-direction: column; justify-content: center; gap: 5px;
+    background: none; border: none; cursor: pointer;
+    padding: 6px; margin-left: auto;
+  }
+  .btn-menu span {
+    display: block; width: 24px; height: 2px;
+    background: var(--blue-dark); border-radius: 2px;
+    transition: transform .3s, opacity .3s;
+  }
+  .mobile-menu {
+    display: none;
+    flex-direction: column;
+    background: #fff;
+    border-top: 1px solid #eee;
+    box-shadow: 0 8px 24px rgba(0,0,0,.1);
+  }
+  .mobile-menu a {
+    padding: 14px 20px;
+    font-size: 15px; font-weight: 700; color: #222;
+    text-decoration: none; border-bottom: 1px solid #f0f0f0;
+    transition: background .15s, color .15s;
+  }
+  .mobile-menu a:hover { background: var(--gray-light); color: var(--blue-mid); }
+  .mobile-menu.open { display: flex; }
+  @media (max-width: 480px) {
+    .btn-menu { display: flex; }
+    .btn-services { display: none; }
+  }
+
+  /* ── HERO ── */
+  .hero {
+    background: linear-gradient(135deg, var(--blue-dark) 0%, var(--blue-mid) 55%, #1e6fff 100%);
+    position: relative; overflow: hidden;
+    min-height: 420px; display: flex; align-items: center;
+  }
+  .hero::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(ellipse 60% 70% at 80% 50%, rgba(0,188,212,.18) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 60% at 20% 80%, rgba(255,255,255,.06) 0%, transparent 60%);
+  }
+  .hero-diamonds {
+    position: absolute; right: 360px; top: 0; bottom: 0;
+    display: flex; flex-direction: column; justify-content: center; gap: 18px;
+    opacity: .55; pointer-events: none;
+  }
+  .diamond { width: 22px; height: 22px; background: var(--yellow); transform: rotate(45deg); border-radius: 3px; }
+  .diamond.sm { width: 14px; height: 14px; margin-left: 24px; }
+  .hero-inner {
+    max-width: 1280px; margin: 0 auto; width: 100%;
+    padding: 60px 24px; display: flex; align-items: center;
+    position: relative; z-index: 2;
+  }
+  .hero-text { flex: 1; max-width: 440px; }
+  .hero-tag {
+    font-size: 13px; font-weight: 800; letter-spacing: 2px;
+    color: rgba(255,255,255,.75); text-transform: uppercase; margin-bottom: 10px;
+  }
+  .hero-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-weight: 900; color: var(--yellow);
+    line-height: 1.05; margin-bottom: 12px;
+  }
+  .hero-subtitle {
+    font-size: 1.1rem; color: rgba(255,255,255,.9);
+    font-weight: 600; margin-bottom: 28px; line-height: 1.5;
+  }
+  .btn-cta {
+    background: var(--yellow); color: #0a1a6e;
+    border: none; border-radius: 30px;
+    padding: 14px 36px; font-family: 'Nunito', sans-serif;
+    font-size: 16px; font-weight: 800; cursor: pointer;
+    transition: background .2s, transform .15s, box-shadow .2s;
+    box-shadow: 0 6px 24px rgba(245,197,24,.4);
+    display: inline-block; text-decoration: none;
+  }
+  .btn-cta:hover { background: var(--yellow-hover); transform: translateY(-2px); box-shadow: 0 10px 30px rgba(245,197,24,.5); }
+  .hero-badge-wrap { flex: 0 0 auto; display: flex; align-items: center; position: relative; }
+  .hero-badge {
+    background: #fff; border-radius: 20px;
+    padding: 24px 32px; text-align: center;
+    box-shadow: 0 16px 48px rgba(0,0,0,.25); position: relative; z-index: 2;
+    animation: badgePop .6s cubic-bezier(.34,1.56,.64,1) both;
+  }
+  @keyframes badgePop { from { opacity:0; transform:scale(.7) rotate(-6deg); } to { opacity:1; transform:scale(1) rotate(0); } }
+  .badge-logo { font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 1.1rem; color: var(--blue-dark); margin-bottom: 6px; }
+  .badge-logo span { color: var(--cyan); }
+  .badge-num { font-family: 'Montserrat', sans-serif; font-size: 4rem; font-weight: 900; color: var(--blue-dark); line-height: 1; }
+  .badge-num span { color: var(--yellow); }
+  .badge-label { font-size: .85rem; font-weight: 800; color: var(--blue-dark); text-transform: uppercase; letter-spacing: .5px; line-height: 1.3; margin-top: 4px; }
+  .badge-sub { font-size: .75rem; font-weight: 700; color: #777; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+
+  /* ── SERVICES SECTION ── */
+  .services {
+    background: var(--gray-light);
+    padding: 64px 24px;
+  }
+  .services h2 {
+    text-align: center;
+    font-family: 'Montserrat', sans-serif;
+    font-size: clamp(1.5rem, 3vw, 2.1rem);
+    font-weight: 800; color: #111; margin-bottom: 40px;
+  }
+  .services-grid {
+    max-width: 1100px; margin: 0 auto;
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;
+  }
+  .service-card {
+    background: #fff; border-radius: 16px;
+    padding: 28px 20px; text-align: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,.07);
+    transition: transform .2s, box-shadow .2s;
+    cursor: pointer;
+  }
+  .service-card:hover { transform: translateY(-6px); box-shadow: 0 12px 36px rgba(0,0,0,.12); }
+  .service-icon {
+    width: 56px; height: 56px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 16px;
+    font-size: 26px;
+  }
+  .icon-blue { background: #e8f0ff; }
+  .icon-cyan { background: #e0f7fa; }
+  .icon-yellow { background: #fff8e1; }
+  .icon-green { background: #e8f5e9; }
+  .service-card h3 { font-size: 1rem; font-weight: 800; color: #111; margin-bottom: 8px; }
+  .service-card p { font-size: .85rem; color: var(--gray-text); line-height: 1.5; }
+  .service-card .card-link {
+    display: inline-block; margin-top: 14px;
+    font-size: .85rem; font-weight: 800; color: var(--blue-mid);
+    text-decoration: none;
+  }
+  .service-card .card-link:hover { text-decoration: underline; }
+
+  /* ── PLANS SECTION ── */
+  .plans { padding: 72px 24px; background: #fff; }
+  .plans h2 {
+    text-align: center;
+    font-family: 'Montserrat', sans-serif;
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    font-weight: 800; color: #111; margin-bottom: 8px;
+  }
+  .plans .sub { text-align: center; color: var(--gray-text); margin-bottom: 40px; font-size: 15px; }
+  .plans-grid {
+    max-width: 1100px; margin: 0 auto;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
+  }
+  .plan-card {
+    border: 2px solid #e8edf5; border-radius: 20px;
+    padding: 36px 28px; text-align: center;
+    transition: border-color .2s, transform .2s, box-shadow .2s;
+    position: relative; cursor: pointer;
+  }
+  .plan-card:hover { border-color: var(--blue-mid); transform: translateY(-4px); box-shadow: 0 12px 40px rgba(26,58,173,.12); }
+  .plan-card.featured {
+    background: linear-gradient(145deg, var(--blue-dark) 0%, var(--blue-mid) 100%);
+    border-color: var(--blue-mid); color: #fff;
+    transform: scale(1.04);
+    box-shadow: 0 16px 48px rgba(26,58,173,.3);
+  }
+  .plan-tag {
+    position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+    background: var(--yellow); color: var(--blue-dark);
+    font-size: 11px; font-weight: 900; letter-spacing: 1px;
+    padding: 4px 16px; border-radius: 20px; text-transform: uppercase;
+  }
+  .plan-speed {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 3.5rem; font-weight: 900; line-height: 1;
+    color: var(--blue-mid);
+  }
+  .plan-card.featured .plan-speed { color: var(--yellow); }
+  .plan-unit { font-size: .9rem; font-weight: 700; color: #777; }
+  .plan-card.featured .plan-unit { color: rgba(255,255,255,.7); }
+  .plan-name { font-size: 1.1rem; font-weight: 800; margin: 10px 0 6px; }
+  .plan-price-label { font-size: .8rem; color: #999; margin-bottom: 4px; }
+  .plan-card.featured .plan-price-label { color: rgba(255,255,255,.6); }
+  .plan-price { font-family: 'Montserrat', sans-serif; font-size: 2rem; font-weight: 900; color: #111; }
+  .plan-card.featured .plan-price { color: #fff; }
+  .plan-price sup { font-size: 1rem; vertical-align: super; }
+  .plan-features { list-style: none; margin: 18px 0; text-align: left; }
+  .plan-features li { font-size: .9rem; padding: 6px 0; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid rgba(0,0,0,.06); }
+  .plan-card.featured .plan-features li { border-bottom-color: rgba(255,255,255,.12); }
+  .plan-features li::before { content: '✓'; color: var(--cyan); font-weight: 900; flex-shrink: 0; }
+  .plan-card.featured .plan-features li::before { color: var(--yellow); }
+  .btn-plan {
+    width: 100%; padding: 13px; border-radius: 30px;
+    border: none; font-family: 'Nunito', sans-serif;
+    font-size: 15px; font-weight: 800; cursor: pointer;
+    background: var(--blue-mid); color: #fff;
+    transition: background .2s, transform .15s;
+  }
+  .plan-card.featured .btn-plan { background: var(--yellow); color: var(--blue-dark); }
+  .btn-plan:hover { transform: scale(1.03); }
+
+  /* ── WHY US ── */
+  .why {
+    background: linear-gradient(135deg, var(--blue-dark), #1535a0);
+    padding: 72px 24px; color: #fff;
+  }
+  .why h2 {
+    text-align: center;
+    font-family: 'Montserrat', sans-serif;
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    font-weight: 800; margin-bottom: 48px;
+  }
+  .why-grid {
+    max-width: 1000px; margin: 0 auto;
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; text-align: center;
+  }
+  .why-item .why-icon {
+    font-size: 2.4rem; margin-bottom: 12px;
+    background: rgba(255,255,255,.1); border-radius: 50%;
+    width: 70px; height: 70px; display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 14px;
+  }
+  .why-item h3 { font-size: 1rem; font-weight: 800; margin-bottom: 8px; }
+  .why-item p { font-size: .85rem; color: rgba(255,255,255,.75); line-height: 1.5; }
+
+  /* ── FOOTER ── */
+  footer {
+    background: #07124a; color: rgba(255,255,255,.7);
+    padding: 48px 24px 24px;
+  }
+  .footer-inner {
+    max-width: 1100px; margin: 0 auto;
+    display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 40px;
+    margin-bottom: 40px;
+  }
+  .footer-brand .brand-name {
+    font-family: 'Montserrat', sans-serif; font-weight: 900;
+    font-size: 1.5rem; color: #fff; margin-bottom: 12px;
+  }
+  .footer-brand .brand-name span { color: var(--cyan); }
+  .footer-brand p { font-size: .85rem; line-height: 1.6; }
+  footer h4 { font-size: .9rem; font-weight: 800; color: #fff; margin-bottom: 14px; }
+  footer ul { list-style: none; }
+  footer ul li { margin-bottom: 8px; }
+  footer ul li a { color: rgba(255,255,255,.65); text-decoration: none; font-size: .85rem; transition: color .2s; }
+  footer ul li a:hover { color: var(--yellow); }
+  .footer-bottom {
+    max-width: 1100px; margin: 0 auto;
+    border-top: 1px solid rgba(255,255,255,.1);
+    padding-top: 20px; display: flex; justify-content: space-between;
+    font-size: .8rem; flex-wrap: wrap; gap: 8px;
+  }
+
+  /* WHATSAPP FAB */
+  .fab-whatsapp {
+    position: fixed; bottom: 80px; right: 24px; z-index: 800;
+    background: #25d366; color: #fff;
+    width: 56px; height: 56px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px; box-shadow: 0 6px 20px rgba(37,211,102,.45);
+    cursor: pointer; text-decoration: none;
+    transition: transform .2s, box-shadow .2s;
+  }
+  .fab-whatsapp:hover { transform: scale(1.1); box-shadow: 0 10px 28px rgba(37,211,102,.55); }
+
+  /* ACCESSIBILITY FAB */
+  .fab-a11y {
+    position: fixed; bottom: 144px; right: 24px; z-index: 800;
+    background: var(--blue-dark); color: #fff;
+    width: 44px; height: 44px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; box-shadow: 0 4px 14px rgba(0,0,0,.3);
+    cursor: pointer; border: none;
+  }
+
+  /* ── MODAL 2ª VIA ── */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 9000;
+    background: rgba(0,0,0,.6); backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+    opacity: 0; pointer-events: none;
+    transition: opacity .3s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+
+  .modal {
+    background: #fff; border-radius: 24px;
+    width: 100%; max-width: 480px;
+    box-shadow: 0 24px 64px rgba(0,0,0,.25);
+    overflow: hidden;
+    transform: translateY(24px) scale(.97);
+    transition: transform .3s;
+    max-height: 90vh; overflow-y: auto;
+  }
+  .modal-overlay.open .modal { transform: translateY(0) scale(1); }
+
+  .modal-header {
+    background: linear-gradient(135deg, var(--blue-dark), var(--blue-mid));
+    padding: 24px 28px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .modal-header h2 { font-family: 'Montserrat',sans-serif; font-size: 1.2rem; font-weight: 900; color: #fff; }
+  .modal-close {
+    background: rgba(255,255,255,.15); border: none; color: #fff;
+    width: 32px; height: 32px; border-radius: 50%; font-size: 16px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: background .2s;
+  }
+  .modal-close:hover { background: rgba(255,255,255,.3); }
+
+  /* steps */
+  .modal-steps {
+    display: flex; align-items: center; justify-content: center;
+    gap: 0; padding: 20px 28px 0;
+  }
+  .mstep { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .mstep-circle {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: #e8edf5; color: #aaa;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 13px; transition: background .3s, color .3s;
+  }
+  .mstep.active .mstep-circle { background: var(--blue-mid); color: #fff; }
+  .mstep.done   .mstep-circle { background: #10b981; color: #fff; }
+  .mstep-label { font-size: 10px; font-weight: 700; color: #aaa; white-space: nowrap; }
+  .mstep.active .mstep-label  { color: var(--blue-mid); }
+  .mstep.done   .mstep-label  { color: #10b981; }
+  .mstep-line { flex: 1; height: 2px; background: #e8edf5; min-width: 32px; margin-bottom: 18px; transition: background .3s; }
+  .mstep-line.done { background: #10b981; }
+
+  .modal-body { padding: 20px 28px 28px; }
+
+  /* form */
+  .modal-screen { display: none; }
+  .modal-screen.active { display: block; }
+  .m-label { display: block; font-size: 12px; font-weight: 800; color: #555; margin-bottom: 5px; }
+  .m-input-wrap { position: relative; margin-bottom: 16px; }
+  .m-input-wrap input {
+    width: 100%; padding: 12px 14px 12px 40px;
+    border: 2px solid #e0e6f0; border-radius: 10px;
+    font-family: 'Nunito',sans-serif; font-size: 14px; font-weight: 600;
+    outline: none; transition: border-color .2s;
+  }
+  .m-input-wrap input:focus { border-color: var(--blue-mid); }
+  .m-input-wrap .m-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 16px; }
+  .m-btn {
+    width: 100%; padding: 13px; border: none; border-radius: 10px;
+    font-family: 'Nunito',sans-serif; font-size: 15px; font-weight: 800;
+    cursor: pointer; transition: opacity .2s, transform .15s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .m-btn:hover:not(:disabled) { opacity: .9; transform: translateY(-1px); }
+  .m-btn:disabled { opacity: .5; cursor: not-allowed; }
+  .m-btn-primary { background: linear-gradient(135deg, var(--blue-dark), var(--blue-mid)); color: #fff; }
+  .m-btn-green   { background: #10b981; color: #fff; }
+  .m-btn-gray    { background: #f4f6fb; color: #777; margin-top: 8px; font-size: 13px; }
+
+  /* loading */
+  .m-loading { text-align: center; padding: 32px 0; }
+  .m-spinner {
+    width: 44px; height: 44px; border-radius: 50%;
+    border: 4px solid #e0e6f0; border-top-color: var(--blue-mid);
+    animation: mspin .8s linear infinite; margin: 0 auto 14px;
+  }
+  @keyframes mspin { to { transform: rotate(360deg); } }
+  .m-loading p { font-size: 13px; color: #777; font-weight: 600; line-height: 1.6; }
+
+  /* erro */
+  .m-erro {
+    display: none; background: #fee2e2; border: 2px solid #fca5a5;
+    border-radius: 10px; padding: 12px 16px; margin-bottom: 14px;
+    color: #991b1b; font-size: 13px; font-weight: 700;
+  }
+
+  /* faturas */
+  .m-fatura {
+    border: 2px solid #e0e6f0; border-radius: 12px; padding: 14px 16px;
+    margin-bottom: 10px; cursor: pointer; transition: border-color .2s;
+    position: relative;
+  }
+  .m-fatura:hover { border-color: var(--blue-mid); }
+  .m-fatura.sel   { border-color: var(--blue-mid); background: #f0f4ff; }
+  .m-fatura .mf-status {
+    position: absolute; top: 12px; right: 12px;
+    font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 20px;
+  }
+  .ms-aberto  { background: #fef3c7; color: #92400e; }
+  .ms-vencido { background: #fee2e2; color: #991b1b; }
+  .ms-pago    { background: #d1fae5; color: #065f46; }
+  .mf-ref   { font-size: 11px; color: #999; font-weight: 700; margin-bottom: 2px; }
+  .mf-valor { font-family: 'Montserrat',sans-serif; font-size: 1.5rem; font-weight: 900; color: var(--blue-dark); }
+  .mf-venc  { font-size: 11px; color: #aaa; font-weight: 600; margin-top: 2px; }
+  .mf-check {
+    position: absolute; bottom: 12px; right: 12px;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--blue-mid); color: #fff;
+    display: none; align-items: center; justify-content: center; font-size: 11px;
+  }
+  .m-fatura.sel .mf-check { display: flex; }
+
+  /* pix */
+  .m-pix { text-align: center; }
+  .m-pix-qr {
+    width: 170px; height: 170px; background: #f4f6fb;
+    border-radius: 14px; margin: 0 auto 12px;
+    display: flex; align-items: center; justify-content: center;
+    border: 2px dashed var(--blue-mid); overflow: hidden;
+  }
+  .m-pix-qr img { width: 100%; }
+  .m-pix-valor { font-family: 'Montserrat',sans-serif; font-size: 1.8rem; font-weight: 900; color: var(--blue-dark); margin-bottom: 6px; }
+  .m-pix-label { font-size: 12px; color: #999; margin-bottom: 12px; }
+  .m-pix-code {
+    width: 100%; padding: 10px 44px 10px 12px; background: #f4f6fb;
+    border: 2px solid #e0e6f0; border-radius: 8px;
+    font-size: 11px; font-family: monospace; color: #555;
+    word-break: break-all; resize: none; outline: none; margin-bottom: 10px;
+  }
+  .m-pix-wrap { position: relative; }
+  .m-copy-btn {
+    position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+    background: var(--blue-mid); color: #fff; border: none; border-radius: 6px;
+    padding: 5px 10px; font-size: 11px; font-weight: 800; cursor: pointer;
+  }
+
+  /* ── MODAL CONTRATAÇÃO ── */
+  #modal-contratacao .modal-header { background: linear-gradient(135deg, #064e3b, #10b981); }
+  .c-plan-badge {
+    background: linear-gradient(135deg, var(--blue-dark), var(--blue-mid));
+    border-radius: 12px; padding: 16px 20px; margin-bottom: 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    color: #fff;
+  }
+  .c-plan-nome { font-family: 'Montserrat',sans-serif; font-weight: 900; font-size: 1rem; }
+  .c-plan-vel  { font-size: 12px; color: rgba(255,255,255,.7); margin-top: 2px; }
+  .c-plan-preco { font-family: 'Montserrat',sans-serif; font-weight: 900; font-size: 1.4rem; color: var(--yellow); }
+  .c-plan-mes  { font-size: 10px; color: rgba(255,255,255,.6); }
+  .c-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media(max-width:480px){ .c-row { grid-template-columns: 1fr; } }
+
+  @media (max-width: 900px) {
+    .services-grid, .plans-grid { grid-template-columns: repeat(2, 1fr); }
+    .why-grid { grid-template-columns: repeat(2, 1fr); }
+    .footer-inner { grid-template-columns: 1fr 1fr; }
+    .plan-card.featured { transform: scale(1); }
+    .hero-person { display: none; }
+  }
+  @media (max-width: 600px) {
+    .services-grid, .plans-grid, .why-grid { grid-template-columns: 1fr; }
+    .footer-inner { grid-template-columns: 1fr; }
+    .search-bar { display: none; }
+    .btn-help { display: none; }
+  }
+
+  /* ════════════════════════════════════════
+     MOBILE FIRST — ajustes completos
+  ════════════════════════════════════════ */
+  @media (max-width: 480px) {
+
+    /* HEADER */
+    .header-inner { padding: 0 14px; height: 56px; gap: 6px; }
+    .logo svg { height: 26px; }
+    nav { display: none; } /* menu colapsado no mobile */
+    .btn-services { padding: 7px 12px; font-size: 12px; gap: 4px; }
+    .btn-services svg { display: none; }
+
+    /* HERO */
+    .hero { min-height: 320px; }
+    .hero-inner { padding: 32px 18px; flex-direction: column; align-items: flex-start; gap: 24px; }
+    .hero-text { max-width: 100%; }
+    .hero-tag { font-size: 11px; }
+    .hero-title { font-size: 2rem !important; }
+    .hero-subtitle { font-size: .95rem; }
+    .btn-cta { padding: 12px 28px; font-size: 14px; }
+    .hero-badge-wrap { width: 100%; display: flex; justify-content: center; }
+    .hero-badge { padding: 16px 24px; }
+    .badge-num { font-size: 3rem; }
+    .hero-diamonds { display: none; }
+
+    /* SERVICES */
+    .services { padding: 40px 16px; }
+    .services-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+    .service-card { padding: 18px 14px; }
+    .service-icon { width: 44px; height: 44px; font-size: 20px; }
+    .service-card h3 { font-size: .85rem; }
+    .service-card p { font-size: .75rem; }
+
+    /* PLANS */
+    .plans { padding: 40px 16px; }
+    .plans-grid { grid-template-columns: 1fr; gap: 16px; }
+    .plan-card { padding: 24px 20px; }
+    .plan-speed { font-size: 2.8rem; }
+    .btn-plan { padding: 12px; font-size: 14px; }
+
+    /* WHY */
+    .why { padding: 40px 16px; }
+    .why-grid { grid-template-columns: 1fr 1fr; gap: 20px; }
+    .why-item .why-icon { width: 54px; height: 54px; font-size: 1.8rem; }
+    .why-item h3 { font-size: .85rem; }
+    .why-item p { font-size: .78rem; }
+
+    /* FOOTER */
+    footer { padding: 32px 16px 20px; }
+    .footer-inner { grid-template-columns: 1fr; gap: 24px; }
+    .footer-bottom { flex-direction: column; gap: 4px; font-size: .75rem; }
+
+    /* COOKIE */
+    #cookie-banner { padding: 12px 16px; gap: 10px; }
+    #cookie-banner p { font-size: 12px; }
+    .cb-manage { display: none; }
+
+    /* FABs */
+    .fab-whatsapp { bottom: 70px; right: 16px; width: 50px; height: 50px; font-size: 22px; }
+    .fab-a11y { bottom: 128px; right: 16px; width: 38px; height: 38px; font-size: 17px; }
+
+    /* MODAL */
+    .modal { border-radius: 18px 18px 0 0; max-height: 95vh; }
+    .modal-overlay { align-items: flex-end; padding: 0; }
+    .modal-header { padding: 18px 20px; }
+    .modal-header h2 { font-size: 1rem; }
+    .modal-body { padding: 16px 18px 24px; }
+    .modal-steps { padding: 14px 18px 0; gap: 0; }
+    .mstep-circle { width: 26px; height: 26px; font-size: 12px; }
+    .mstep-label { font-size: 9px; }
+    .mstep-line { min-width: 20px; }
+    .m-input-wrap input { padding: 11px 12px 11px 36px; font-size: 14px; }
+    .m-btn { padding: 13px; font-size: 14px; }
+    .m-pix-qr { width: 150px; height: 150px; }
+    .m-pix-valor { font-size: 1.5rem; }
+    .c-row { grid-template-columns: 1fr; }
+    .c-plan-badge { padding: 14px 16px; }
+    .c-plan-preco { font-size: 1.2rem; }
+
+    /* PLANOS — scroll horizontal no mobile */
+    .plans-grid { 
+      display: flex; 
+      overflow-x: auto; 
+      scroll-snap-type: x mandatory;
+      gap: 14px;
+      padding-bottom: 12px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .plan-card {
+      min-width: 260px;
+      scroll-snap-align: center;
+      flex-shrink: 0;
     }
 
-    return faturas;
+    /* SERVIÇOS — 2 colunas compactas */
+    .services-grid { grid-template-columns: 1fr 1fr; }
+
+    /* WHY — 2 colunas */
+    .why-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* Scroll suave nos planos */
+  .plans-grid::-webkit-scrollbar { height: 4px; }
+  .plans-grid::-webkit-scrollbar-track { background: #f0f0f0; border-radius: 2px; }
+  .plans-grid::-webkit-scrollbar-thumb { background: var(--blue-mid); border-radius: 2px; }
+</style>
+</head>
+<body>
+<script>
+  // Funções globais disponíveis imediatamente (antes do DOM completo)
+  function hideCookie() {
+    var el = document.getElementById('cookie-banner');
+    if (el) el.style.display = 'none';
+  }
+  function abrirModal() {
+    var el = document.getElementById('modal-boleto');
+    if (el) el.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function fecharModalDireto() {
+    var el = document.getElementById('modal-boleto');
+    if (el) el.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  function fecharModal(e) {
+    if (e.target === document.getElementById('modal-boleto')) fecharModalDireto();
+  }
+  function fecharContratacaoDireto() {
+    var el = document.getElementById('modal-contratacao');
+    if (el) el.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  function fecharContratacao(e) {
+    if (e.target === document.getElementById('modal-contratacao')) fecharContratacaoDireto();
+  }
+  function abrirContratacao(nome, vel, preco) {
+    // Será sobrescrita pelo script principal após DOM carregar
+    window._pendingContratacao = { nome, vel, preco };
+    var el = document.getElementById('modal-contratacao');
+    if (el) el.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+</script>
+
+<!-- COOKIE -->
+<div id="cookie-banner">
+  <p><strong>Configurações de Cookies</strong><br>
+  Aprimoramos sua experiência em nosso site por meio do uso de cookies. Para uma experiência completa, clique em "Aceitar Todos". Veja detalhes em <a href="#">Política de Cookies</a>.</p>
+  <div class="cb-actions">
+    <button class="cb-manage" onclick="hideCookie()">Gerenciar</button>
+    <button class="cb-btn cb-accept" onclick="hideCookie()">Aceitar</button>
+    <button class="cb-btn cb-reject" onclick="hideCookie()">Rejeitar</button>
+  </div>
+  <button class="cb-close" onclick="hideCookie()">✕</button>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="header-inner">
+    <!-- LOGO -->
+    <div class="logo">
+      <svg viewBox="0 0 160 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <text x="0" y="30" font-family="Montserrat,sans-serif" font-weight="900" font-size="28" fill="#0a1a6e">uni</text>
+        <text x="52" y="30" font-family="Montserrat,sans-serif" font-weight="900" font-size="28" fill="#00bcd4">f</text>
+        <text x="63" y="30" font-family="Montserrat,sans-serif" font-weight="900" font-size="28" fill="#0a1a6e">ique</text>
+      </svg>
+    </div>
+
+    <!-- NAV -->
+    <nav>
+      <div class="nav-item">
+        <button class="nav-btn">Página Inicial</button>
+      </div>
+      <div class="nav-item">
+        <button class="nav-btn">Para você <span class="chevron">▾</span></button>
+        <div class="dropdown">
+          <a href="#">Internet Fibra</a>
+          <a href="#">TV por Assinatura</a>
+          <a href="#">Telefone Fixo</a>
+          <a href="#">Planos Combo</a>
+        </div>
+      </div>
+      <div class="nav-item">
+        <button class="nav-btn">Para empresas <span class="chevron">▾</span></button>
+        <div class="dropdown">
+          <a href="#">Internet Empresarial</a>
+          <a href="#">Link Dedicado</a>
+          <a href="#">Soluções em Nuvem</a>
+          <a href="#">Telefonia Corporativa</a>
+        </div>
+      </div>
+      <div class="nav-item">
+        <button class="nav-btn">Atendimento <span class="chevron">▾</span></button>
+        <div class="dropdown">
+          <a href="#">Central do Assinante</a>
+          <a href="#">Segunda Via de Boleto</a>
+          <a href="#">Chat Online</a>
+          <a href="#">Ouvidoria</a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- SEARCH -->
+    <div class="search-bar">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" placeholder="Pesquisar no portal">
+    </div>
+
+    <!-- ACTIONS -->
+    <button class="btn-services">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      SERVIÇOS
+    </button>
+    <button class="btn-help">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      AJUDA
+    </button>
+    <!-- HAMBURGER (mobile) -->
+    <button class="btn-menu" id="btn-menu" onclick="toggleMenu()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+
+  <!-- MENU MOBILE -->
+  <div class="mobile-menu" id="mobile-menu">
+    <a href="#" onclick="toggleMenu()">Página Inicial</a>
+    <a href="#" onclick="toggleMenu()">Para você</a>
+    <a href="#" onclick="toggleMenu()">Para empresas</a>
+    <a href="#" onclick="toggleMenu()">Atendimento</a>
+    <a href="#" onclick="abrirModal(); toggleMenu()">2ª Via de Boleto</a>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-diamonds">
+    <div class="diamond"></div>
+    <div class="diamond sm"></div>
+    <div class="diamond"></div>
+    <div class="diamond sm"></div>
+    <div class="diamond"></div>
+  </div>
+  <div class="hero-inner">
+    <div class="hero-text">
+      <div class="hero-tag">Contrate Agora</div>
+      <h1 class="hero-title">Internet Fibra</h1>
+      <p class="hero-subtitle">A Melhor Internet do Sul do Brasil</p>
+      <button class="btn-cta" onclick="document.querySelector('.plans').scrollIntoView({behavior:'smooth'})">Assine já</button>
+    </div>
+    <div style="flex:1"></div>
+    <div class="hero-badge-wrap">
+      <div class="hero-badge">
+        <div class="badge-logo">uni<span>f</span>ique</div>
+        <div class="badge-num"><span>7</span></div>
+        <div class="badge-label">VEZES<br>A MELHOR<br>INTERNET</div>
+        <div class="badge-sub">DO SUL DO BRASIL</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICES -->
+<section class="services">
+  <h2>Serviços mais procurados</h2>
+  <div class="services-grid">
+    <div class="service-card" onclick="abrirModal()">
+      <div class="service-icon icon-blue">📡</div>
+      <h3>Segunda Via de Boleto</h3>
+      <p>Emita sua segunda via de forma rápida e sem complicações.</p>
+      <a class="card-link" onclick="abrirModal()">Acessar →</a>
+    </div>
+    <div class="service-card">
+      <div class="service-icon icon-cyan">🌐</div>
+      <h3>Verificar Disponibilidade</h3>
+      <p>Consulte se a fibra ótica já chegou na sua região.</p>
+      <a href="#" class="card-link">Consultar →</a>
+    </div>
+    <div class="service-card">
+      <div class="service-icon icon-yellow">📺</div>
+      <h3>Suporte Técnico</h3>
+      <p>Problemas com a conexão? Nossa equipe resolve em minutos.</p>
+      <a href="#" class="card-link">Abrir chamado →</a>
+    </div>
+    <div class="service-card">
+      <div class="service-icon icon-green">📱</div>
+      <h3>App Minha Unifique</h3>
+      <p>Gerencie sua conta, faturas e serviços pelo celular.</p>
+      <a href="#" class="card-link">Baixar app →</a>
+    </div>
+  </div>
+</section>
+
+<!-- PLANS -->
+<section class="plans">
+  <h2>Escolha seu plano</h2>
+  <p class="sub">Internet de alta velocidade para você e sua família</p>
+  <div class="plans-grid">
+    <div class="plan-card">
+      <div class="plan-speed">200<small style="font-size:1.5rem">MB</small></div>
+      <div class="plan-unit">Download</div>
+      <div class="plan-name">Plano Essencial</div>
+      <div class="plan-price-label">A partir de</div>
+      <div class="plan-price"><sup>R$</sup>79<sup style="font-size:.9rem">,90/mês</sup></div>
+      <ul class="plan-features">
+        <li>Wi-Fi incluso</li>
+        <li>Instalação grátis</li>
+        <li>Suporte 24h</li>
+      </ul>
+      <button class="btn-plan" onclick="abrirContratacao('Plano Essencial','200MB','79.90')">Contratar</button>
+    </div>
+    <div class="plan-card featured">
+      <div class="plan-tag">Mais popular</div>
+      <div class="plan-speed">500<small style="font-size:1.5rem">MB</small></div>
+      <div class="plan-unit">Download</div>
+      <div class="plan-name">Plano Turbo</div>
+      <div class="plan-price-label">A partir de</div>
+      <div class="plan-price"><sup>R$</sup>109<sup style="font-size:.9rem">,90/mês</sup></div>
+      <ul class="plan-features">
+        <li>Wi-Fi incluso</li>
+        <li>Instalação grátis</li>
+        <li>Suporte 24h prioritário</li>
+        <li>Streaming incluído</li>
+      </ul>
+      <button class="btn-plan" onclick="abrirContratacao('Plano Turbo','500MB','109.90')">Contratar</button>
+    </div>
+    <div class="plan-card">
+      <div class="plan-speed">1<small style="font-size:1.5rem">GB</small></div>
+      <div class="plan-unit">Download</div>
+      <div class="plan-name">Plano Ultra</div>
+      <div class="plan-price-label">A partir de</div>
+      <div class="plan-price"><sup>R$</sup>159<sup style="font-size:.9rem">,90/mês</sup></div>
+      <ul class="plan-features">
+        <li>Wi-Fi 6 incluso</li>
+        <li>Instalação grátis</li>
+        <li>Suporte VIP 24h</li>
+        <li>Streaming + TV incluído</li>
+      </ul>
+      <button class="btn-plan" onclick="abrirContratacao('Plano Ultra','1GB','159.90')">Contratar</button>
+    </div>
+  </div>
+</section>
+
+<!-- WHY -->
+<section class="why">
+  <h2>Por que escolher a Unifique?</h2>
+  <div class="why-grid">
+    <div class="why-item">
+      <div class="why-icon">🏆</div>
+      <h3>7x Melhor Internet</h3>
+      <p>Reconhecida como a melhor internet do Sul do Brasil por 7 anos consecutivos.</p>
+    </div>
+    <div class="why-item">
+      <div class="why-icon">⚡</div>
+      <h3>Fibra Óptica Pura</h3>
+      <p>Tecnologia 100% fibra para a máxima velocidade e estabilidade.</p>
+    </div>
+    <div class="why-item">
+      <div class="why-icon">🛡️</div>
+      <h3>Suporte 24/7</h3>
+      <p>Nossa equipe técnica está sempre disponível para te atender.</p>
+    </div>
+    <div class="why-item">
+      <div class="why-icon">💳</div>
+      <h3>Sem Fidelidade</h3>
+      <p>Planos sem fidelidade e com total transparência nas condições.</p>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <div class="brand-name">uni<span>f</span>ique</div>
+      <p>A melhor internet de fibra óptica do Sul do Brasil. Qualidade, velocidade e atendimento que você merece.</p>
+    </div>
+    <div>
+      <h4>Para você</h4>
+      <ul>
+        <li><a href="#">Internet Fibra</a></li>
+        <li><a href="#">TV por Assinatura</a></li>
+        <li><a href="#">Telefone Fixo</a></li>
+        <li><a href="#">Planos Combo</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Para empresas</h4>
+      <ul>
+        <li><a href="#">Internet Empresarial</a></li>
+        <li><a href="#">Link Dedicado</a></li>
+        <li><a href="#">Soluções Cloud</a></li>
+        <li><a href="#">Telefonia IP</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Atendimento</h4>
+      <ul>
+        <li><a href="#">Central do Assinante</a></li>
+        <li><a href="#">2ª Via de Boleto</a></li>
+        <li><a href="#">Suporte Técnico</a></li>
+        <li><a href="#">Ouvidoria</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2024 Unifique Telecomunicações. Todos os direitos reservados.</span>
+    <span>Política de Privacidade · Termos de Uso</span>
+  </div>
+</footer>
+
+<!-- MODAL 2ª VIA DE BOLETO -->
+<div class="modal-overlay" id="modal-boleto" onclick="fecharModal(event)">
+  <div class="modal">
+
+    <div class="modal-header">
+      <h2>🧾 2ª Via de Fatura</h2>
+      <button class="modal-close" onclick="fecharModalDireto()">✕</button>
+    </div>
+
+    <!-- Steps -->
+    <div class="modal-steps">
+      <div class="mstep active" id="ms1"><div class="mstep-circle">1</div><div class="mstep-label">Identificação</div></div>
+      <div class="mstep-line" id="ml1"></div>
+      <div class="mstep" id="ms2"><div class="mstep-circle">2</div><div class="mstep-label">Faturas</div></div>
+      <div class="mstep-line" id="ml2"></div>
+      <div class="mstep" id="ms3"><div class="mstep-circle">3</div><div class="mstep-label">Pix</div></div>
+    </div>
+
+    <div class="modal-body">
+
+      <!-- TELA 1: FORM -->
+      <div class="modal-screen active" id="ms-form">
+        <p style="font-size:13px;color:#777;margin-bottom:16px;">Informe seus dados para consultar suas faturas em aberto.</p>
+        <div class="m-erro" id="m-erro"></div>
+        <label class="m-label">CPF</label>
+        <div class="m-input-wrap">
+          <span class="m-icon">👤</span>
+          <input type="text" id="m-cpf" placeholder="000.000.000-00" maxlength="14">
+        </div>
+        <label class="m-label">Telefone cadastrado</label>
+        <div class="m-input-wrap">
+          <span class="m-icon">📱</span>
+          <input type="text" id="m-tel" placeholder="(47) 99999-9999" maxlength="15">
+        </div>
+        <button class="m-btn m-btn-primary" id="m-btn-consultar" onclick="mConsultar()">🔍 Consultar faturas</button>
+      </div>
+
+      <!-- TELA 2: LOADING -->
+      <div class="modal-screen" id="ms-loading">
+        <div class="m-loading">
+          <div class="m-spinner"></div>
+          <p>Consultando suas faturas<br>no portal Unifique...<br><small style="color:#aaa">Aguarde até 60 segundos</small></p>
+        </div>
+      </div>
+
+      <!-- TELA 3: FATURAS -->
+      <div class="modal-screen" id="ms-faturas">
+        <p style="font-size:13px;color:#777;margin-bottom:14px;">Selecione a fatura que deseja pagar:</p>
+        <div id="m-lista-faturas"></div>
+        <button class="m-btn m-btn-green" id="m-btn-pagar" onclick="mGerarPix()" disabled style="margin-top:8px;">💰 Pagar com Pix</button>
+        <button class="m-btn m-btn-gray" onclick="mReset()">← Nova consulta</button>
+      </div>
+
+      <!-- TELA 4: PIX LOADING -->
+      <div class="modal-screen" id="ms-pix-loading">
+        <div class="m-loading">
+          <div class="m-spinner"></div>
+          <p>Gerando seu Pix...<br><small style="color:#aaa">Aguarde um momento</small></p>
+        </div>
+      </div>
+
+      <!-- TELA 5: PIX -->
+      <div class="modal-screen" id="ms-pix">
+        <div class="m-pix">
+          <div class="m-pix-qr" id="m-pix-qr">📷</div>
+          <div class="m-pix-valor" id="m-pix-valor"></div>
+          <div class="m-pix-label">Escaneie o QR Code ou copie o código abaixo</div>
+          <div class="m-pix-wrap">
+            <textarea class="m-pix-code" id="m-pix-code" rows="3" readonly></textarea>
+            <button class="m-copy-btn" onclick="mCopiarPix()">Copiar</button>
+          </div>
+          <p style="font-size:11px;color:#aaa;margin-bottom:12px;">Pix expira em 30 minutos</p>
+        </div>
+        <button class="m-btn m-btn-gray" onclick="mReset()">← Pagar outra fatura</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONTRATAÇÃO -->
+<div class="modal-overlay" id="modal-contratacao" onclick="fecharContratacao(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>🚀 Contratar Plano</h2>
+      <button class="modal-close" onclick="fecharContratacaoDireto()">✕</button>
+    </div>
+
+    <div class="modal-steps">
+      <div class="mstep active" id="cs1"><div class="mstep-circle">1</div><div class="mstep-label">Seus dados</div></div>
+      <div class="mstep-line" id="cl1"></div>
+      <div class="mstep" id="cs2"><div class="mstep-circle">2</div><div class="mstep-label">Pagamento</div></div>
+      <div class="mstep-line" id="cl2"></div>
+      <div class="mstep" id="cs3"><div class="mstep-circle">3</div><div class="mstep-label">Confirmado</div></div>
+    </div>
+
+    <div class="modal-body">
+
+      <!-- TELA 1: FORMULÁRIO -->
+      <div class="modal-screen active" id="cs-form">
+        <div class="c-plan-badge">
+          <div>
+            <div class="c-plan-nome" id="c-nome-plano">Plano Turbo</div>
+            <div class="c-plan-vel" id="c-vel-plano">500MB</div>
+          </div>
+          <div style="text-align:right">
+            <div class="c-plan-preco" id="c-preco-plano">R$ 109,90</div>
+            <div class="c-plan-mes">/mês</div>
+          </div>
+        </div>
+
+        <div class="m-erro" id="c-erro"></div>
+
+        <div class="c-row">
+          <div>
+            <label class="m-label">Nome completo</label>
+            <div class="m-input-wrap">
+              <span class="m-icon">👤</span>
+              <input type="text" id="c-nome" placeholder="Seu nome">
+            </div>
+          </div>
+          <div>
+            <label class="m-label">CPF</label>
+            <div class="m-input-wrap">
+              <span class="m-icon">🪪</span>
+              <input type="text" id="c-cpf" placeholder="000.000.000-00" maxlength="14">
+            </div>
+          </div>
+        </div>
+        <div class="c-row">
+          <div>
+            <label class="m-label">E-mail</label>
+            <div class="m-input-wrap">
+              <span class="m-icon">✉️</span>
+              <input type="email" id="c-email" placeholder="seu@email.com">
+            </div>
+          </div>
+          <div>
+            <label class="m-label">Telefone / WhatsApp</label>
+            <div class="m-input-wrap">
+              <span class="m-icon">📱</span>
+              <input type="text" id="c-tel" placeholder="(47) 99999-9999" maxlength="15">
+            </div>
+          </div>
+        </div>
+
+        <button class="m-btn m-btn-primary" onclick="cAvancar()">Avançar para pagamento →</button>
+      </div>
+
+      <!-- TELA 2: LOADING PIX -->
+      <div class="modal-screen" id="cs-loading">
+        <div class="m-loading">
+          <div class="m-spinner"></div>
+          <p>Gerando seu Pix...<br><small style="color:#aaa">Aguarde um momento</small></p>
+        </div>
+      </div>
+
+      <!-- TELA 3: PIX -->
+      <div class="modal-screen" id="cs-pix">
+        <div class="m-pix">
+          <p style="font-size:13px;color:#555;margin-bottom:12px;font-weight:600;">Escaneie o QR Code ou copie o código para pagar a <strong>primeira mensalidade</strong> e ativar seu plano:</p>
+          <div class="c-plan-badge" style="margin-bottom:16px;">
+            <div>
+              <div class="c-plan-nome" id="c-confirm-plano"></div>
+              <div class="c-plan-vel" id="c-confirm-nome-cliente"></div>
+            </div>
+            <div style="text-align:right">
+              <div class="c-plan-preco" id="c-confirm-preco"></div>
+              <div class="c-plan-mes">/mês</div>
+            </div>
+          </div>
+          <div class="m-pix-qr" id="c-pix-qr">📷</div>
+          <div class="m-pix-wrap">
+            <textarea class="m-pix-code" id="c-pix-code" rows="3" readonly></textarea>
+            <button class="m-copy-btn" onclick="cCopiarPix()">Copiar</button>
+          </div>
+          <p style="font-size:11px;color:#aaa;margin-bottom:14px;">⏱ Pix expira em 30 minutos</p>
+        </div>
+        <button class="m-btn" style="background:#f4f6fb;color:#777;font-size:13px;" onclick="fecharContratacaoDireto()">Fechar — pagarei depois</button>
+      </div>
+
+      <!-- TELA 4: SUCESSO (após confirmação manual) -->
+      <div class="modal-screen" id="cs-sucesso">
+        <div style="text-align:center;padding:20px 0;">
+          <div style="font-size:4rem;margin-bottom:12px;">🎉</div>
+          <h3 style="font-family:'Montserrat',sans-serif;font-size:1.3rem;color:#065f46;margin-bottom:8px;">Pedido recebido!</h3>
+          <p style="font-size:14px;color:#555;line-height:1.6;">Nossa equipe entrará em contato em breve pelo <strong>WhatsApp</strong> para agendar a instalação.</p>
+          <button class="m-btn m-btn-primary" style="margin-top:20px;" onclick="fecharContratacaoDireto()">Fechar</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- FABs -->
+<a href="https://wa.me/5500000000000" class="fab-whatsapp" target="_blank">💬</a>
+<button class="fab-a11y">♿</button>
+
+<script>
+  // ── CONFIG ──────────────────────────────────────
+  const BACKEND = 'https://unifique.onrender.com';
+  // ─────────────────────────────────────────────────
+
+  // ── MENU MOBILE ──
+  function toggleMenu() {
+    document.getElementById('mobile-menu').classList.toggle('open');
+  }
+
+  // ── COOKIE ──
+  function hideCookie() { document.getElementById('cookie-banner').style.display = 'none'; }
+
+  // ── MODAL 2ª VIA ──
+  function abrirModal() {
+    document.getElementById('modal-boleto').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function fecharModalDireto() {
+    document.getElementById('modal-boleto').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  function fecharModal(e) {
+    if (e.target === document.getElementById('modal-boleto')) fecharModalDireto();
+  }
+  function abrirModal() {
+    document.getElementById('modal-boleto').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function fecharModalDireto() {
+    document.getElementById('modal-boleto').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  function fecharModal(e) {
+    if (e.target === document.getElementById('modal-boleto')) fecharModalDireto();
+  }
+
+  // Máscaras
+  document.getElementById('m-cpf').addEventListener('input', function () {
+    let v = this.value.replace(/\D/g, '').slice(0, 11);
+    v = v.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+    this.value = v;
   });
-}
+  document.getElementById('m-tel').addEventListener('input', function () {
+    let v = this.value.replace(/\D/g, '').slice(0, 11);
+    v = v.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d)/, '$1-$2');
+    this.value = v;
+  });
 
-// ─────────────────────────────────────────────────────────────
-// ROTA: POST /consultar-debito
-// ─────────────────────────────────────────────────────────────
-app.post('/consultar-debito', async (req, res) => {
-  const { cpf, telefone } = req.body;
-  if (!cpf || !telefone) return res.status(400).json({ erro: 'CPF e telefone são obrigatórios.' });
-
-  const cpfLimpo = cpf.replace(/\D/g, '');
-  const telLimpo = telefone.replace(/\D/g, '');
-  const cpfFmt   = cpfLimpo.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-  const telFmt   = telLimpo.length === 11
-    ? telLimpo.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
-    : telLimpo.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
-
-  let browser;
-  try {
-    browser = await launchBrowser();
-    const page = await browser.newPage();
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
-
-    // Intercepta respostas JSON com faturas
-    let faturasDeAPI = [];
-    page.on('response', async (response) => {
-      try {
-        const url = response.url();
-        const ct  = response.headers()['content-type'] || '';
-        if (!ct.includes('json')) return;
-        if (!/fatura|invoice|boleto|charge|bill|payment|debito|financ/i.test(url)) return;
-        const json = await response.json().catch(() => null);
-        if (!json) return;
-        const lista = Array.isArray(json) ? json : (json.data || json.faturas || json.items || []);
-        if (!Array.isArray(lista) || !lista.length) return;
-        lista.forEach(item => {
-          const valor = item.valor || item.amount || item.value || item.total;
-          const venc  = item.vencimento || item.due_date || item.dueDate || item.dataVencimento;
-          if (valor && venc) {
-            faturasDeAPI.push({
-              valor: parseFloat(String(valor).replace(/[^\d.,]/g, '').replace(',', '.')).toFixed(2),
-              vencimento: venc,
-              referencia: item.referencia || item.description || venc,
-              status: String(item.status || '').toLowerCase().includes('pago') ? 'pago' : 'em aberto',
-            });
-          }
-        });
-      } catch (_) {}
+  function mSetStep(n) {
+    [1,2,3].forEach(i => {
+      const el = document.getElementById('ms'+i);
+      if (el) el.className = 'mstep' + (i < n ? ' done' : i === n ? ' active' : '');
     });
-
-    // ── 1. Abrir login ──
-    console.log('Abrindo portal...');
-    await page.goto('https://minhafatura.unifique.com.br/login', { waitUntil: 'networkidle2', timeout: 30000 });
-    await aguardar(page, 2000);
-
-    // ── 2. CPF ──
-    console.log('Preenchendo CPF:', cpfFmt);
-    await typeInField(page, [
-      'input[name="cpf"]', 'input[id="cpf"]',
-      'input[placeholder*="CPF"]', 'input[placeholder*="cpf"]',
-      'input[placeholder*="documento"]', 'input[placeholder*="Documento"]',
-      'input[type="tel"]', 'input[type="text"]', 'input',
-    ], cpfFmt);
-
-    // ── 3. Continuar ──
-    await clickButton(page, ['button[type="submit"]', 'button.btn-primary', 'button[class*="primary"]', 'input[type="submit"]']);
-    await aguardar(page, 3000);
-
-    // ── 4. Telefone ──
-    console.log('Preenchendo telefone:', telFmt);
-    await typeInField(page, [
-      'input[name="telefone"]', 'input[name="phone"]', 'input[name="celular"]',
-      'input[id="telefone"]', 'input[placeholder*="telefone"]', 'input[placeholder*="Telefone"]',
-      'input[placeholder*="celular"]', 'input[placeholder*="Celular"]', 'input[placeholder*="phone"]',
-      'input[type="tel"]', 'input[type="text"]',
-    ], telFmt);
-
-    // ── 5. Confirmar ──
-    await clickButton(page, ['button[type="submit"]', 'button.btn-primary', 'button[class*="primary"]', 'input[type="submit"]']);
-    await aguardar(page, 5000);
-
-    // ── 6. Extrair faturas ──
-    let faturas = faturasDeAPI.length > 0 ? faturasDeAPI : await extrairFaturas(page);
-
-    // Remove duplicatas
-    const vistos = new Set();
-    faturas = faturas.filter(f => {
-      const k = f.valor + f.vencimento;
-      if (vistos.has(k)) return false;
-      vistos.add(k);
-      return true;
+    [1,2].forEach(i => {
+      const el = document.getElementById('ml'+i);
+      if (el) el.className = 'mstep-line' + (i < n ? ' done' : '');
     });
-
-    console.log('Faturas encontradas:', faturas.length);
-    await browser.close();
-    return res.json({ sucesso: true, faturas });
-
-  } catch (err) {
-    if (browser) await browser.close().catch(() => {});
-    console.error('Erro scraping:', err.message);
-    return res.status(500).json({ erro: 'Não foi possível consultar o débito.', detalhe: err.message });
-  }
-});
-
-// ─────────────────────────────────────────────────────────────
-// ROTA: POST /gerar-pix  (Sigilo Pay)
-// ─────────────────────────────────────────────────────────────
-app.post('/gerar-pix', async (req, res) => {
-  const { valor, cpf, nome, descricao, email, telefone } = req.body;
-  if (!valor || !cpf) return res.status(400).json({ erro: 'Valor e CPF são obrigatórios.' });
-
-  const PUBLIC_KEY = process.env.SIGILO_CLIENT_ID;
-  const SECRET_KEY = process.env.SIGILO_CLIENT_SECRET;
-
-  // Valida email antes de chamar a API
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const emailValido = emailRegex.test(email) ? email : null;
-  if (!emailValido) {
-    return res.status(400).json({ erro: 'E-mail inválido. Informe um e-mail no formato nome@dominio.com' });
   }
 
-  // Identificador único por transação
-  const identifier = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-
-  // Formata telefone para padrão brasileiro (11) 99999-9999
-  const telLimpo = (telefone || '').replace(/\D/g, '');
-  let telFmt = telefone || '(47) 99999-9999';
-  if (telLimpo.length === 11) {
-    telFmt = `(${telLimpo.slice(0,2)}) ${telLimpo.slice(2,7)}-${telLimpo.slice(7)}`;
-  } else if (telLimpo.length === 10) {
-    telFmt = `(${telLimpo.slice(0,2)}) ${telLimpo.slice(2,6)}-${telLimpo.slice(6)}`;
+  function mMostrar(id) {
+    ['ms-form','ms-loading','ms-faturas','ms-pix-loading','ms-pix'].forEach(s => {
+      const el = document.getElementById(s);
+      if (el) el.classList.remove('active');
+    });
+    const target = document.getElementById(id);
+    if (target) target.classList.add('active');
   }
 
-  const PRODUTO_ID = 'cmoej2rdj0kt41yrxf9n1mhxf';
-  const OFFER_CODE = 'WVR6DMH';
+  let mFaturaSelecionada = null;
+  let mCpfAtual = '';
 
-  const body = {
-    identifier,
-    amount:    parseFloat(valor),
-    offerCode: OFFER_CODE,
-    client: {
-      name:     nome || 'Cliente Unifique',
-      email:    emailValido,
-      phone:    telFmt,
-      document: cpf.replace(/\D/g, ''),
-    },
-    products: [
-      {
-        id:       PRODUTO_ID,
-        quantity: 1,
-        price:    parseFloat(valor),
-      }
-    ],
-    metadata: {
-      plano:    descricao || 'Serviço Unifique',
-      provider: 'Unifique Site',
-    },
+  async function mConsultar() {
+    const cpf = document.getElementById('m-cpf').value;
+    const tel = document.getElementById('m-tel').value;
+    const erroEl = document.getElementById('m-erro');
+    erroEl.style.display = 'none';
+
+    if (cpf.replace(/\D/g,'').length < 11) { erroEl.textContent = 'Informe um CPF válido.'; erroEl.style.display = 'block'; return; }
+    if (tel.replace(/\D/g,'').length < 10)  { erroEl.textContent = 'Informe um telefone válido.'; erroEl.style.display = 'block'; return; }
+
+    mCpfAtual = cpf;
+    mSetStep(2);
+    mMostrar('ms-loading');
+
+    try {
+      const resp = await fetch(`${BACKEND}/consultar-debito`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ cpf, telefone: tel }),
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.sucesso) throw new Error(data.erro || 'Erro ao consultar.');
+      mRenderFaturas(data.faturas);
+    } catch (err) {
+      mSetStep(1);
+      mMostrar('ms-form');
+      erroEl.textContent = err.message;
+      erroEl.style.display = 'block';
+    }
+  }
+
+  function mRenderFaturas(faturas) {
+    const lista = document.getElementById('m-lista-faturas');
+    lista.innerHTML = '';
+    mFaturaSelecionada = null;
+    document.getElementById('m-btn-pagar').disabled = true;
+
+    if (!faturas.length) {
+      lista.innerHTML = '<p style="text-align:center;color:#aaa;padding:16px 0;font-weight:700;">Nenhuma fatura em aberto 🎉</p>';
+    } else {
+      faturas.forEach((f, i) => {
+        const sc = f.status === 'pago' ? 'ms-pago' : f.status === 'vencido' ? 'ms-vencido' : 'ms-aberto';
+        const sl = f.status === 'pago' ? 'Pago' : f.status === 'vencido' ? 'Vencido' : 'Em aberto';
+        const el = document.createElement('div');
+        el.className = 'm-fatura';
+        el.innerHTML = `
+          <span class="mf-status ${sc}">${sl}</span>
+          <div class="mf-ref">Ref: ${f.referencia || 'Fatura ' + (i+1)}</div>
+          <div class="mf-valor">R$ ${parseFloat(f.valor).toFixed(2).replace('.',',')}</div>
+          <div class="mf-venc">Venc: ${f.vencimento}</div>
+          <div class="mf-check">✓</div>
+        `;
+        if (f.status !== 'pago') {
+          el.onclick = () => {
+            document.querySelectorAll('.m-fatura').forEach(x => x.classList.remove('sel'));
+            el.classList.add('sel');
+            mFaturaSelecionada = f;
+            document.getElementById('m-btn-pagar').disabled = false;
+          };
+        } else { el.style.opacity = '.6'; el.style.cursor = 'default'; }
+        lista.appendChild(el);
+      });
+    }
+    mMostrar('ms-faturas');
+  }
+
+  async function mGerarPix() {
+    if (!mFaturaSelecionada) return;
+    mSetStep(3);
+    mMostrar('ms-pix-loading');
+
+    try {
+      const resp = await fetch(`${BACKEND}/gerar-pix`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          valor:     mFaturaSelecionada.valor,
+          cpf:       mCpfAtual,
+          nome:      'Cliente Unifique',
+          descricao: `Fatura Unifique – venc. ${mFaturaSelecionada.vencimento}`,
+        }),
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.sucesso) throw new Error(data.erro || 'Erro ao gerar Pix.');
+      mRenderPix(data);
+    } catch (err) {
+      mMostrar('ms-faturas');
+      alert('Não foi possível gerar o Pix: ' + err.message);
+    }
+  }
+
+  function mRenderPix(data) {
+    const qrEl = document.getElementById('m-pix-qr');
+    qrEl.innerHTML = data.qrCodeBase64
+      ? `<img src="data:image/png;base64,${data.qrCodeBase64}">`
+      : '📷';
+    document.getElementById('m-pix-valor').textContent =
+      'R$ ' + parseFloat(mFaturaSelecionada.valor).toFixed(2).replace('.',',');
+    document.getElementById('m-pix-code').value = data.pixCopiaECola || '';
+    mMostrar('ms-pix');
+  }
+
+  // ── CONTRATAÇÃO ──
+  let cPlanoAtual = {};
+
+  function abrirContratacao(nome, vel, preco) {
+    cPlanoAtual = { nome, vel, preco };
+    document.getElementById('c-nome-plano').textContent = nome;
+    document.getElementById('c-vel-plano').textContent = vel;
+    document.getElementById('c-preco-plano').textContent = 'R$ ' + parseFloat(preco).toFixed(2).replace('.',',');
+    document.getElementById('c-erro').style.display = 'none';
+    document.getElementById('c-nome').value = '';
+    document.getElementById('c-cpf').value = '';
+    document.getElementById('c-email').value = '';
+    document.getElementById('c-tel').value = '';
+    cSetStep(1);
+    cMostrar('cs-form');
+    document.getElementById('modal-contratacao').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function fecharContratacaoDireto() {
+    document.getElementById('modal-contratacao').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  function fecharContratacao(e) {
+    if (e.target === document.getElementById('modal-contratacao')) fecharContratacaoDireto();
+  }
+
+  function cSetStep(n) {
+    [1,2,3].forEach(i => {
+      const el = document.getElementById('cs'+i);
+      if (el) el.className = 'mstep' + (i < n ? ' done' : i === n ? ' active' : '');
+    });
+    [1,2].forEach(i => {
+      const el = document.getElementById('cl'+i);
+      if (el) el.className = 'mstep-line' + (i < n ? ' done' : '');
+    });
+  }
+
+  function cMostrar(id) {
+    ['cs-form','cs-loading','cs-pix','cs-sucesso'].forEach(s => {
+      const el = document.getElementById(s);
+      if (el) el.classList.remove('active');
+    });
+    const target = document.getElementById(id);
+    if (target) target.classList.add('active');
+  }
+
+  // Máscaras contratação
+  document.getElementById('c-cpf').addEventListener('input', function () {
+    let v = this.value.replace(/\D/g, '').slice(0, 11);
+    v = v.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+    this.value = v;
+  });
+  document.getElementById('c-tel').addEventListener('input', function () {
+    let v = this.value.replace(/\D/g, '').slice(0, 11);
+    v = v.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d)/, '$1-$2');
+    this.value = v;
+  });
+
+  async function cAvancar() {
+    const nome  = document.getElementById('c-nome').value.trim();
+    const cpf   = document.getElementById('c-cpf').value;
+    const email = document.getElementById('c-email').value.trim();
+    const tel   = document.getElementById('c-tel').value;
+    const erroEl = document.getElementById('c-erro');
+    erroEl.style.display = 'none';
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!nome)                               { erroEl.textContent = 'Informe seu nome completo.';  erroEl.style.display='block'; return; }
+    if (cpf.replace(/\D/g,'').length < 11)  { erroEl.textContent = 'Informe um CPF válido.';       erroEl.style.display='block'; return; }
+    if (!emailRegex.test(email))            { erroEl.textContent = 'Informe um e-mail válido (ex: nome@email.com).'; erroEl.style.display='block'; return; }
+    if (tel.replace(/\D/g,'').length < 11) { erroEl.textContent = 'Informe um telefone válido com DDD e 9 dígitos (ex: (47) 99999-9999).'; erroEl.style.display='block'; return; }
+
+    cSetStep(2);
+    cMostrar('cs-loading');
+
+    try {
+      const resp = await fetch(`${BACKEND}/gerar-pix`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          valor:     cPlanoAtual.preco,
+          cpf,
+          nome,
+          email,
+          telefone:  tel,
+          descricao: `Contratação ${cPlanoAtual.nome} – ${cPlanoAtual.vel}`,
+        }),
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.sucesso) throw new Error(data.erro || 'Erro ao gerar Pix.');
+      cRenderPix(data, nome);
+    } catch (err) {
+      cSetStep(1);
+      cMostrar('cs-form');
+      erroEl.textContent = 'Erro ao gerar Pix: ' + err.message;
+      erroEl.style.display = 'block';
+    }
+  }
+
+  function cRenderPix(data, nomeCliente) {
+    const qrEl = document.getElementById('c-pix-qr');
+    if (data.qrCodeBase64) {
+      // Remove prefixo data:image se já vier incluso
+      const b64 = data.qrCodeBase64.includes('base64,')
+        ? data.qrCodeBase64
+        : `data:image/png;base64,${data.qrCodeBase64}`;
+      qrEl.innerHTML = `<img src="${b64}" style="width:100%;border-radius:10px;">`;
+    } else if (data.qrCodeUrl) {
+      qrEl.innerHTML = `<img src="${data.qrCodeUrl}" style="width:100%;border-radius:10px;">`;
+    } else {
+      qrEl.innerHTML = '📷';
+    }
+    document.getElementById('c-confirm-plano').textContent = cPlanoAtual.nome + ' – ' + cPlanoAtual.vel;
+    document.getElementById('c-confirm-nome-cliente').textContent = nomeCliente;
+    document.getElementById('c-confirm-preco').textContent = 'R$ ' + parseFloat(cPlanoAtual.preco).toFixed(2).replace('.',',');
+    document.getElementById('c-pix-code').value = data.pixCopiaECola || '';
+    cSetStep(3);
+    cMostrar('cs-pix');
+  }
+
+  // Sobrescreve a versão stub do topo com a versão completa
+  abrirContratacao = function(nome, vel, preco) {
+    cPlanoAtual = { nome, vel, preco };
+    document.getElementById('c-nome-plano').textContent = nome;
+    document.getElementById('c-vel-plano').textContent = vel;
+    document.getElementById('c-preco-plano').textContent = 'R$ ' + parseFloat(preco).toFixed(2).replace('.',',');
+    document.getElementById('c-erro').style.display = 'none';
+    document.getElementById('c-nome').value = '';
+    document.getElementById('c-cpf').value = '';
+    document.getElementById('c-email').value = '';
+    document.getElementById('c-tel').value = '';
+    cSetStep(1);
+    cMostrar('cs-form');
+    document.getElementById('modal-contratacao').classList.add('open');
+    document.body.style.overflow = 'hidden';
   };
 
-  console.log('Body enviado:', JSON.stringify(body));
+  // Processa chamada pendente (se o usuário clicou antes do DOM carregar)
+  if (window._pendingContratacao) {
+    const p = window._pendingContratacao;
+    abrirContratacao(p.nome, p.vel, p.preco);
+    window._pendingContratacao = null;
+  }
 
-  try {
-    const response = await axios.post(
-      'https://app.sigilopay.com.br/api/v1/gateway/pix/receive',
-      body,
-      {
-        headers: {
-          'x-public-key':  PUBLIC_KEY,
-          'x-secret-key':  SECRET_KEY,
-          'Content-Type':  'application/json',
-        },
-        timeout: 20000,
-      }
-    );
-
-    const d = response.data;
-    console.log('Resposta Sigilo Pay:', JSON.stringify(d));
-
-    return res.json({
-      sucesso:       true,
-      pixCopiaECola: d?.pix?.code   || null,
-      qrCodeBase64:  d?.pix?.base64 || null,
-      qrCodeUrl:     d?.pix?.image  || null,
-      txid:          d?.transactionId || null,
-      status:        d?.status || null,
-    });
-
-  } catch (err) {
-    const errData = err.response?.data || err.message;
-    console.error('Sigilo Pay erro:', JSON.stringify(errData));
-    return res.status(500).json({
-      erro:    'Não foi possível gerar o Pix.',
-      detalhe: errData,
-      status:  err.response?.status,
+  function mCopiarPix() {
+    const code = document.getElementById('m-pix-code').value;
+    navigator.clipboard.writeText(code).then(() => {
+      const btn = document.querySelector('.m-copy-btn');
+      btn.textContent = '✓ Copiado!';
+      btn.style.background = '#10b981';
+      setTimeout(() => { btn.textContent = 'Copiar'; btn.style.background = ''; }, 2500);
     });
   }
-});
 
-// ─────────────────────────────────────────────────────────────
-// ROTA: GET / — health check
-// ─────────────────────────────────────────────────────────────
-app.get('/', (_req, res) => res.json({ status: 'ok', servico: 'Unifique Scraping API' }));
-
-app.listen(PORT, () => console.log('Servidor rodando na porta', PORT));
+  function mReset() {
+    mFaturaSelecionada = null;
+    document.getElementById('m-cpf').value = '';
+    document.getElementById('m-tel').value = '';
+    document.getElementById('m-erro').style.display = 'none';
+    mSetStep(1);
+    mMostrar('ms-form');
+  }
+</script>
+</body>
+</html>
