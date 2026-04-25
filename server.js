@@ -267,25 +267,12 @@ app.post('/gerar-pix', async (req, res) => {
 
   const body = {
     identifier,
-    amount:    parseFloat(valor),
-    offerCode: OFFER_CODE,
+    amount: parseFloat(valor),
     client: {
       name:     nome || 'Cliente Unifique',
       email:    emailValido,
       phone:    telFmt,
       document: cpf.replace(/\D/g, ''),
-    },
-    products: [
-      {
-        id:       PRODUTO_ID,
-        name:     'Internet Fibra Unifique',
-        quantity: 1,
-        price:    parseFloat(valor),
-      }
-    ],
-    metadata: {
-      plano:    descricao || 'Serviço Unifique',
-      provider: 'Unifique Site',
     },
   };
 
