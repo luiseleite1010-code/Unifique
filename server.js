@@ -268,7 +268,7 @@ app.post('/gerar-pix', async (req, res) => {
 
   try {
     const response = await axios.post(
-      'https://app.sigilopay.com.br/api/v1/transactions',
+      'https://app.sigilopay.com.br/api/v1/transactions/pix',
       body,
       {
         headers: {
