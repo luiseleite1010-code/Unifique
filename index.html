@@ -120,82 +120,31 @@
   }
   .btn-help:hover { background: var(--blue-mid); color: #fff; }
 
-  /* ── CAROUSEL / HERO ── */
-  .hero-carousel {
-    position: relative; overflow: hidden;
-    min-height: 420px;
-  }
-
-  /* SLIDES */
-  .slide {
-    position: absolute; inset: 0;
-    display: flex; align-items: center;
-    opacity: 0; pointer-events: none;
-    transition: opacity .7s ease, transform .7s ease;
-    transform: translateX(60px);
-  }
-  .slide.active {
-    opacity: 1; pointer-events: all;
-    position: relative; transform: translateX(0);
-  }
-  .slide.exit-left  { transform: translateX(-60px); opacity: 0; }
-
-  /* SLIDE 1 — Internet Fibra */
-  .slide-1 {
+  /* ── HERO ── */
+  .hero {
     background: linear-gradient(135deg, var(--blue-dark) 0%, var(--blue-mid) 55%, #1e6fff 100%);
+    position: relative; overflow: hidden;
+    min-height: 420px; display: flex; align-items: center;
   }
-  .slide-1::before {
-    content: '';
-    position: absolute; inset: 0;
+  .hero::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
     background:
       radial-gradient(ellipse 60% 70% at 80% 50%, rgba(0,188,212,.18) 0%, transparent 70%),
       radial-gradient(ellipse 40% 60% at 20% 80%, rgba(255,255,255,.06) 0%, transparent 60%);
   }
-
-  /* SLIDE 2 — 2ª Via Boleto */
-  .slide-2 {
-    background: linear-gradient(135deg, #064e3b 0%, #065f46 50%, #047857 100%);
-  }
-  .slide-2::before {
-    content: '';
-    position: absolute; inset: 0;
-    background:
-      radial-gradient(ellipse 55% 65% at 75% 50%, rgba(16,185,129,.2) 0%, transparent 65%),
-      radial-gradient(ellipse 40% 50% at 15% 70%, rgba(255,255,255,.05) 0%, transparent 60%);
-  }
-
-  /* SLIDE 3 — Falta de Internet */
-  .slide-3 {
-    background: linear-gradient(135deg, #7c1d1d 0%, #991b1b 50%, #b91c1c 100%);
-  }
-  .slide-3::before {
-    content: '';
-    position: absolute; inset: 0;
-    background:
-      radial-gradient(ellipse 55% 65% at 75% 50%, rgba(239,68,68,.2) 0%, transparent 65%),
-      radial-gradient(ellipse 40% 50% at 15% 70%, rgba(255,255,255,.05) 0%, transparent 60%);
-  }
-
-  /* Decorative diamonds */
   .hero-diamonds {
     position: absolute; right: 360px; top: 0; bottom: 0;
     display: flex; flex-direction: column; justify-content: center; gap: 18px;
-    opacity: .45; z-index: 1;
+    opacity: .55; pointer-events: none;
   }
-  .diamond {
-    width: 22px; height: 22px;
-    background: var(--yellow);
-    transform: rotate(45deg);
-    border-radius: 3px;
-  }
+  .diamond { width: 22px; height: 22px; background: var(--yellow); transform: rotate(45deg); border-radius: 3px; }
   .diamond.sm { width: 14px; height: 14px; margin-left: 24px; }
-
   .hero-inner {
     max-width: 1280px; margin: 0 auto; width: 100%;
     padding: 60px 24px; display: flex; align-items: center;
-    position: relative; z-index: 1;
+    position: relative; z-index: 2;
   }
-  .hero-text { flex: 1; max-width: 500px; }
+  .hero-text { flex: 1; max-width: 440px; }
   .hero-tag {
     font-size: 13px; font-weight: 800; letter-spacing: 2px;
     color: rgba(255,255,255,.75); text-transform: uppercase; margin-bottom: 10px;
@@ -206,7 +155,6 @@
     font-weight: 900; color: var(--yellow);
     line-height: 1.05; margin-bottom: 12px;
   }
-  .slide-2 .hero-title, .slide-3 .hero-title { color: #fff; }
   .hero-subtitle {
     font-size: 1.1rem; color: rgba(255,255,255,.9);
     font-weight: 600; margin-bottom: 28px; line-height: 1.5;
@@ -221,75 +169,20 @@
     display: inline-block; text-decoration: none;
   }
   .btn-cta:hover { background: var(--yellow-hover); transform: translateY(-2px); box-shadow: 0 10px 30px rgba(245,197,24,.5); }
-  .btn-cta.green { background: #10b981; color: #fff; box-shadow: 0 6px 24px rgba(16,185,129,.4); }
-  .btn-cta.green:hover { background: #059669; box-shadow: 0 10px 30px rgba(16,185,129,.5); }
-  .btn-cta.red { background: #ef4444; color: #fff; box-shadow: 0 6px 24px rgba(239,68,68,.4); }
-  .btn-cta.red:hover { background: #dc2626; box-shadow: 0 10px 30px rgba(239,68,68,.5); }
-
-  /* BADGE (slide 1) */
   .hero-badge-wrap { flex: 0 0 auto; display: flex; align-items: center; position: relative; }
   .hero-badge {
     background: #fff; border-radius: 20px;
     padding: 24px 32px; text-align: center;
-    box-shadow: 0 16px 48px rgba(0,0,0,.25);
-    position: relative; z-index: 2;
+    box-shadow: 0 16px 48px rgba(0,0,0,.25); position: relative; z-index: 2;
+    animation: badgePop .6s cubic-bezier(.34,1.56,.64,1) both;
   }
+  @keyframes badgePop { from { opacity:0; transform:scale(.7) rotate(-6deg); } to { opacity:1; transform:scale(1) rotate(0); } }
   .badge-logo { font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 1.1rem; color: var(--blue-dark); margin-bottom: 6px; }
   .badge-logo span { color: var(--cyan); }
   .badge-num { font-family: 'Montserrat', sans-serif; font-size: 4rem; font-weight: 900; color: var(--blue-dark); line-height: 1; }
   .badge-num span { color: var(--yellow); }
   .badge-label { font-size: .85rem; font-weight: 800; color: var(--blue-dark); text-transform: uppercase; letter-spacing: .5px; line-height: 1.3; margin-top: 4px; }
   .badge-sub { font-size: .75rem; font-weight: 700; color: #777; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
-
-  /* CARD (slides 2 & 3) */
-  .hero-card {
-    background: rgba(255,255,255,.1); backdrop-filter: blur(12px);
-    border: 1px solid rgba(255,255,255,.2);
-    border-radius: 24px; padding: 32px 36px;
-    min-width: 320px; max-width: 380px;
-    box-shadow: 0 16px 48px rgba(0,0,0,.2);
-    color: #fff;
-  }
-  .hero-card .card-icon { font-size: 3rem; margin-bottom: 12px; }
-  .hero-card h3 { font-family: 'Montserrat', sans-serif; font-size: 1.3rem; font-weight: 800; margin-bottom: 8px; }
-  .hero-card p { font-size: .9rem; color: rgba(255,255,255,.8); line-height: 1.5; margin-bottom: 16px; }
-  .hero-card .card-steps { list-style: none; margin-bottom: 20px; }
-  .hero-card .card-steps li {
-    font-size: .85rem; color: rgba(255,255,255,.85);
-    padding: 6px 0; display: flex; align-items: center; gap: 8px;
-    border-bottom: 1px solid rgba(255,255,255,.1);
-  }
-  .hero-card .card-steps li .step-num {
-    background: rgba(255,255,255,.2); border-radius: 50%;
-    width: 22px; height: 22px; flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center;
-    font-size: .75rem; font-weight: 800;
-  }
-
-  /* CAROUSEL CONTROLS */
-  .carousel-controls {
-    position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
-    display: flex; align-items: center; gap: 10px; z-index: 10;
-  }
-  .dot {
-    width: 10px; height: 10px; border-radius: 50%;
-    background: rgba(255,255,255,.4); cursor: pointer;
-    transition: background .3s, transform .3s; border: none;
-  }
-  .dot.active { background: #fff; transform: scale(1.3); }
-
-  .carousel-arrow {
-    position: absolute; top: 50%; transform: translateY(-50%);
-    background: rgba(255,255,255,.15); border: none;
-    color: #fff; width: 40px; height: 40px; border-radius: 50%;
-    font-size: 18px; cursor: pointer; z-index: 10;
-    transition: background .2s;
-    display: flex; align-items: center; justify-content: center;
-    backdrop-filter: blur(4px);
-  }
-  .carousel-arrow:hover { background: rgba(255,255,255,.3); }
-  .carousel-arrow.prev { left: 16px; }
-  .carousel-arrow.next { right: 16px; }
 
   /* ── SERVICES SECTION ── */
   .services {
@@ -710,109 +603,43 @@
   </div>
 </header>
 
-<!-- HERO CAROUSEL -->
-<div class="hero-carousel" id="heroCarousel">
-
-  <!-- SETA ESQUERDA -->
-  <button class="carousel-arrow prev" onclick="moveSlide(-1)">&#8592;</button>
-  <button class="carousel-arrow next" onclick="moveSlide(1)">&#8594;</button>
-
-  <!-- SLIDE 1 — Internet Fibra -->
-  <section class="slide slide-1 active">
-    <div class="hero-diamonds">
-      <div class="diamond"></div>
-      <div class="diamond sm"></div>
-      <div class="diamond"></div>
-      <div class="diamond sm"></div>
-      <div class="diamond"></div>
-    </div>
-    <div class="hero-inner">
-      <div class="hero-text">
-        <div class="hero-tag">Contrate Agora</div>
-        <h1 class="hero-title">Internet Fibra</h1>
-        <p class="hero-subtitle">A Melhor Internet do Sul do Brasil</p>
-        <button class="btn-cta" onclick="document.querySelector('.plans').scrollIntoView({behavior:'smooth'})">Assine já</button>
-      </div>
-      <div style="flex:1"></div>
-      <div class="hero-badge-wrap">
-        <div class="hero-badge">
-          <div class="badge-logo">uni<span>f</span>ique</div>
-          <div class="badge-num"><span>7</span></div>
-          <div class="badge-label">VEZES<br>A MELHOR<br>INTERNET</div>
-          <div class="badge-sub">DO SUL DO BRASIL</div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- SLIDE 2 — 2ª Via de Boleto -->
-  <section class="slide slide-2">
-    <div class="hero-inner">
-      <div class="hero-text">
-        <div class="hero-tag">Serviço Rápido</div>
-        <h1 class="hero-title" style="font-size:clamp(1.8rem,4vw,2.8rem);">2ª Via de Boleto</h1>
-        <p class="hero-subtitle">Acesse sua fatura em segundos, sem precisar ligar ou ir até uma loja.</p>
-        <button class="btn-cta green" onclick="abrirModal()">Emitir agora</button>
-      </div>
-      <div style="flex:1"></div>
-      <div class="hero-card">
-        <div class="card-icon">🧾</div>
-        <h3>Como emitir sua 2ª via</h3>
-        <p>Siga os passos abaixo e receba sua fatura na hora:</p>
-        <ul class="card-steps">
-          <li><span class="step-num">1</span> Informe seu CPF ou CNPJ</li>
-          <li><span class="step-num">2</span> Selecione a fatura desejada</li>
-          <li><span class="step-num">3</span> Baixe o boleto em PDF ou copie o código</li>
-          <li><span class="step-num">4</span> Pague em qualquer banco ou app</li>
-        </ul>
-        <button class="btn-cta green" style="width:100%;text-align:center;">Acessar Central do Assinante →</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- SLIDE 3 — Falta de Internet -->
-  <section class="slide slide-3">
-    <div class="hero-inner">
-      <div class="hero-text">
-        <div class="hero-tag">Suporte Técnico</div>
-        <h1 class="hero-title" style="font-size:clamp(1.8rem,4vw,2.8rem);">Sem conexão?</h1>
-        <p class="hero-subtitle">Informe a falta de internet e nossa equipe técnica já será acionada automaticamente para resolver.</p>
-        <button class="btn-cta red">Informar agora</button>
-      </div>
-      <div style="flex:1"></div>
-      <div class="hero-card">
-        <div class="card-icon">📡</div>
-        <h3>Informe a falta de internet</h3>
-        <p>Nos ajude a identificar o problema rapidamente:</p>
-        <ul class="card-steps">
-          <li><span class="step-num">1</span> Confirme se o roteador está ligado</li>
-          <li><span class="step-num">2</span> Reinicie o equipamento por 30 segundos</li>
-          <li><span class="step-num">3</span> Informe seu CPF ou número do contrato</li>
-          <li><span class="step-num">4</span> Abra o chamado técnico abaixo</li>
-        </ul>
-        <button class="btn-cta red" style="width:100%;text-align:center;">Abrir Chamado Técnico →</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- DOTS -->
-  <div class="carousel-controls">
-    <button class="dot active" onclick="goToSlide(0)"></button>
-    <button class="dot" onclick="goToSlide(1)"></button>
-    <button class="dot" onclick="goToSlide(2)"></button>
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-diamonds">
+    <div class="diamond"></div>
+    <div class="diamond sm"></div>
+    <div class="diamond"></div>
+    <div class="diamond sm"></div>
+    <div class="diamond"></div>
   </div>
-
-</div>
+  <div class="hero-inner">
+    <div class="hero-text">
+      <div class="hero-tag">Contrate Agora</div>
+      <h1 class="hero-title">Internet Fibra</h1>
+      <p class="hero-subtitle">A Melhor Internet do Sul do Brasil</p>
+      <button class="btn-cta" onclick="document.querySelector('.plans').scrollIntoView({behavior:'smooth'})">Assine já</button>
+    </div>
+    <div style="flex:1"></div>
+    <div class="hero-badge-wrap">
+      <div class="hero-badge">
+        <div class="badge-logo">uni<span>f</span>ique</div>
+        <div class="badge-num"><span>7</span></div>
+        <div class="badge-label">VEZES<br>A MELHOR<br>INTERNET</div>
+        <div class="badge-sub">DO SUL DO BRASIL</div>
+      </div>
+    </div>
+  </div>
+</section>
 
 <!-- SERVICES -->
 <section class="services">
   <h2>Serviços mais procurados</h2>
   <div class="services-grid">
-    <div class="service-card">
+    <div class="service-card" onclick="abrirModal()">
       <div class="service-icon icon-blue">📡</div>
       <h3>Segunda Via de Boleto</h3>
       <p>Emita sua segunda via de forma rápida e sem complicações.</p>
-      <a href="#" class="card-link">Acessar →</a>
+      <a class="card-link" onclick="abrirModal()">Acessar →</a>
     </div>
     <div class="service-card">
       <div class="service-icon icon-cyan">🌐</div>
@@ -1045,39 +872,14 @@
   // ── COOKIE ──
   function hideCookie() { document.getElementById('cookie-banner').style.display = 'none'; }
 
-  // ── CAROUSEL ──
-  const slides = document.querySelectorAll('.slide');
-  const dots   = document.querySelectorAll('.dot');
-  let current  = 0;
-  let timer;
-
-  function goToSlide(n) {
-    slides[current].classList.remove('active');
-    slides[current].classList.add('exit-left');
-    dots[current].classList.remove('active');
-    setTimeout(() => slides[current].classList.remove('exit-left'), 700);
-    current = (n + slides.length) % slides.length;
-    slides[current].classList.add('active');
-    dots[current].classList.add('active');
-    resetTimer();
-  }
-  function moveSlide(dir) { goToSlide(current + dir); }
-  function resetTimer() {
-    clearInterval(timer);
-    timer = setInterval(() => goToSlide(current + 1), 6000);
-  }
-  resetTimer();
-
   // ── MODAL ──
   function abrirModal() {
-    clearInterval(timer); // pausa carrossel
     document.getElementById('modal-boleto').classList.add('open');
     document.body.style.overflow = 'hidden';
   }
   function fecharModalDireto() {
     document.getElementById('modal-boleto').classList.remove('open');
     document.body.style.overflow = '';
-    resetTimer();
   }
   function fecharModal(e) {
     if (e.target === document.getElementById('modal-boleto')) fecharModalDireto();
@@ -1097,18 +899,22 @@
 
   function mSetStep(n) {
     [1,2,3].forEach(i => {
-      document.getElementById('ms'+i).className = 'mstep' + (i < n ? ' done' : i === n ? ' active' : '');
+      const el = document.getElementById('ms'+i);
+      if (el) el.className = 'mstep' + (i < n ? ' done' : i === n ? ' active' : '');
     });
     [1,2].forEach(i => {
-      document.getElementById('ml'+i).className = 'mstep-line' + (i < n ? ' done' : '');
+      const el = document.getElementById('ml'+i);
+      if (el) el.className = 'mstep-line' + (i < n ? ' done' : '');
     });
   }
 
   function mMostrar(id) {
     ['ms-form','ms-loading','ms-faturas','ms-pix-loading','ms-pix'].forEach(s => {
-      document.getElementById(s).classList.remove('active');
+      const el = document.getElementById(s);
+      if (el) el.classList.remove('active');
     });
-    document.getElementById(id).classList.add('active');
+    const target = document.getElementById(id);
+    if (target) target.classList.add('active');
   }
 
   let mFaturaSelecionada = null;
