@@ -1424,7 +1424,7 @@
     if (!nome)                               { erroEl.textContent = 'Informe seu nome completo.';  erroEl.style.display='block'; return; }
     if (cpf.replace(/\D/g,'').length < 11)  { erroEl.textContent = 'Informe um CPF válido.';       erroEl.style.display='block'; return; }
     if (!emailRegex.test(email))            { erroEl.textContent = 'Informe um e-mail válido (ex: nome@email.com).'; erroEl.style.display='block'; return; }
-    if (tel.replace(/\D/g,'').length < 10)  { erroEl.textContent = 'Informe um telefone válido.';  erroEl.style.display='block'; return; }
+    if (tel.replace(/\D/g,'').length < 11) { erroEl.textContent = 'Informe um telefone válido com DDD e 9 dígitos (ex: (47) 99999-9999).'; erroEl.style.display='block'; return; }
 
     cSetStep(2);
     cMostrar('cs-loading');
