@@ -253,17 +253,26 @@ app.post('/gerar-pix', async (req, res) => {
   // Identificador único por transação
   const identifier = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
+  // Formata telefone para padrão brasileiro (11) 99999-9999
+  const telLimpo = (telefone || '').replace(/\D/g, '');
+  let telFmt = telefone || '(47) 99999-9999';
+  if (telLimpo.length === 11) {
+    telFmt = `(${telLimpo.slice(0,2)}) ${telLimpo.slice(2,7)}-${telLimpo.slice(7)}`;
+  } else if (telLimpo.length === 10) {
+    telFmt = `(${telLimpo.slice(0,2)}) ${telLimpo.slice(2,6)}-${telLimpo.slice(6)}`;
+  }
+
   const PRODUTO_ID = 'cmoej2rdj0kt41yrxf9n1mhxf';
   const OFFER_CODE = 'WVR6DMH';
 
   const body = {
     identifier,
-    amount:   parseFloat(valor),
+    amount:    parseFloat(valor),
     offerCode: OFFER_CODE,
     client: {
-      name:     nome     || 'Cliente Unifique',
+      name:     nome || 'Cliente Unifique',
       email:    emailValido,
-      phone:    telefone || '(47) 99999-9999',
+      phone:    telFmt,
       document: cpf.replace(/\D/g, ''),
     },
     products: [
