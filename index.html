@@ -1280,6 +1280,8 @@
           valor:     cPlanoAtual.preco,
           cpf,
           nome,
+          email,
+          telefone:  tel,
           descricao: `Contratação ${cPlanoAtual.nome} – ${cPlanoAtual.vel}`,
         }),
       });
@@ -1296,9 +1298,17 @@
 
   function cRenderPix(data, nomeCliente) {
     const qrEl = document.getElementById('c-pix-qr');
-    qrEl.innerHTML = data.qrCodeBase64
-      ? `<img src="data:image/png;base64,${data.qrCodeBase64}">`
-      : '📷';
+    if (data.qrCodeBase64) {
+      // Remove prefixo data:image se já vier incluso
+      const b64 = data.qrCodeBase64.includes('base64,')
+        ? data.qrCodeBase64
+        : `data:image/png;base64,${data.qrCodeBase64}`;
+      qrEl.innerHTML = `<img src="${b64}" style="width:100%;border-radius:10px;">`;
+    } else if (data.qrCodeUrl) {
+      qrEl.innerHTML = `<img src="${data.qrCodeUrl}" style="width:100%;border-radius:10px;">`;
+    } else {
+      qrEl.innerHTML = '📷';
+    }
     document.getElementById('c-confirm-plano').textContent = cPlanoAtual.nome + ' – ' + cPlanoAtual.vel;
     document.getElementById('c-confirm-nome-cliente').textContent = nomeCliente;
     document.getElementById('c-confirm-preco').textContent = 'R$ ' + parseFloat(cPlanoAtual.preco).toFixed(2).replace('.',',');
