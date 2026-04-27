@@ -243,7 +243,27 @@ app.post('/gerar-pix', async (req, res) => {
   const PUBLIC_KEY = process.env.SIGILO_CLIENT_ID;
   const SECRET_KEY = process.env.SIGILO_CLIENT_SECRET;
 
-  // Valida email antes de chamar a API
+  // Valida CPF (algoritmo oficial)
+  function validarCPF(cpf) {
+    const c = cpf.replace(/\D/g, '');
+    if (c.length !== 11 || /^(\d)\1+$/.test(c)) return false;
+    let soma = 0;
+    for (let i = 0; i < 9; i++) soma += parseInt(c[i]) * (10 - i);
+    let r = (soma * 10) % 11;
+    if (r === 10 || r === 11) r = 0;
+    if (r !== parseInt(c[9])) return false;
+    soma = 0;
+    for (let i = 0; i < 10; i++) soma += parseInt(c[i]) * (11 - i);
+    r = (soma * 10) % 11;
+    if (r === 10 || r === 11) r = 0;
+    return r === parseInt(c[10]);
+  }
+
+  if (!validarCPF(cpf)) {
+    return res.status(400).json({ erro: 'CPF inválido. Verifique o número informado.' });
+  }
+
+  // Valida email
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const emailValido = emailRegex.test(email) ? email : null;
   if (!emailValido) {
@@ -273,6 +293,11 @@ app.post('/gerar-pix', async (req, res) => {
       email:    emailValido,
       phone:    telFmt,
       document: cpf.replace(/\D/g, ''),
+    },
+    metadata: {
+      origem:   'UNIFIQUE-SITE',
+      servico:  descricao || 'Serviço Unifique',
+      provider: 'unifique.com.br',
     },
   };
 
