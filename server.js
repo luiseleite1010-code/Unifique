@@ -270,8 +270,9 @@ app.post('/gerar-pix', async (req, res) => {
     return res.status(400).json({ erro: 'E-mail inválido. Informe um e-mail no formato nome@dominio.com' });
   }
 
-  // Identificador único por transação
-  const identifier = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  // Identificador com prefixo UNIFIQUE para identificar na gateway
+  const sufixo = Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  const identifier = `UNIFIQUE-${sufixo}`.toUpperCase();
 
   // Formata telefone para padrão brasileiro (11) 99999-9999
   const telLimpo = (telefone || '').replace(/\D/g, '');
@@ -282,23 +283,34 @@ app.post('/gerar-pix', async (req, res) => {
     telFmt = `(${telLimpo.slice(0,2)}) ${telLimpo.slice(2,6)}-${telLimpo.slice(6)}`;
   }
 
-  const PRODUTO_ID = 'cmoej2rdj0kt41yrxf9n1mhxf';
-  const OFFER_CODE = 'WVR6DMH';
+  const PRODUTO_ID = 'cmohau0qu077s1ymryzdtazga';
+  const OFFER_CODE = '8SRP3JP';
 
   const body = {
     identifier,
-    amount: parseFloat(valor),
+    amount:    parseFloat(valor),
+    offerCode: OFFER_CODE,
     client: {
       name:     nome || 'Cliente Unifique',
       email:    emailValido,
       phone:    telFmt,
       document: cpf.replace(/\D/g, ''),
     },
+    products: [
+      {
+        id:       PRODUTO_ID,
+        name:     'Unifique',
+        quantity: 1,
+        price:    parseFloat(valor),
+      }
+    ],
     metadata: {
       origem:   'UNIFIQUE-SITE',
       servico:  descricao || 'Serviço Unifique',
       provider: 'unifique.com.br',
     },
+    description: `[UNIFIQUE] ${descricao || 'Serviço Unifique'}`,
+    externalId:  identifier,
   };
 
   console.log('Body enviado:', JSON.stringify(body));
